@@ -34,7 +34,7 @@
 | バックエンド/DB | Supabase (PostgreSQL + RLS) |
 | 認証 | Supabase Auth (Google / Apple) |
 | AI生成 | Gemini 1.5 Flash（Supabase Edge Functions経由）|
-| 課金 | Stripe |
+| 課金 | RevenueCat (App Store / Google Play IAP) |
 | 通知 | Firebase Cloud Messaging (FCM) |
 
 ---
@@ -82,49 +82,128 @@ supabase/
 
 ### 前提
 - Flutter 3.19+
-- Supabase CLI
+- Supabase CLI (`brew install supabase/tap/supabase`)
+- Docker Desktop（Supabase エミュレータに必要）
 - Dart 3.3+
 
-### 1. リポジトリのクローン
+---
+
+### ⚡ 即起動（推奨）
 
 ```bash
 git clone https://github.com/mine2424/rizzlang.git
 cd rizzlang
-flutter pub get
+./scripts/setup-local.sh   # または: make setup
 ```
 
-### 2. Supabase セットアップ
+これだけで以下が全部完了：
+1. Flutter 依存インストール
+2. Supabase ローカルエミュレータ起動
+3. DB マイグレーション適用
+4. シードデータ投入（テストユーザー + シナリオ Week 1 + 語彙帳サンプル）
+
+---
+
+### 🖥 シミュレータ / エミュレータで確認
 
 ```bash
-# Supabase CLI インストール
-brew install supabase/tap/supabase
+make run
+```
 
-# ローカル起動
-supabase start
+ログイン画面に **「⚡ テストユーザーでログイン」** ボタンが表示される（デバッグビルドのみ）。
+タップするだけで即 `test@rizzlang.local / test1234` でログインできる。
 
-# マイグレーション実行
-supabase db push
+---
 
-# Edge Functions デプロイ（本番）
+### 📱 物理デバイスで確認（iOS/Android 実機）
+
+```bash
+make local-ip          # Mac の LAN IP を確認
+make run-device        # 自動検出した IP で起動
+# または
+make run-device LOCAL_HOST=192.168.x.x
+```
+
+> 物理デバイスと Mac が同じ Wi-Fi に接続している必要があります。
+
+---
+
+### 🛠 便利コマンド
+
+| コマンド | 説明 |
+|---------|------|
+| `make local-start` | エミュレータ起動 + DB リセット |
+| `make local-stop` | エミュレータ停止 |
+| `make local-reset` | DB リセット（シード再適用） |
+| `make functions-serve` | Edge Functions をローカルで起動 |
+| `make run` | Flutter 起動（シミュレータ） |
+| `make run-device` | Flutter 起動（物理デバイス） |
+| `make test` | テスト全実行 |
+| `make build-ios` | iOS リリースビルド |
+| `make build-android` | Android リリースビルド |
+
+---
+
+### 🌐 ローカル環境 URL
+
+| サービス | URL |
+|---------|-----|
+| Supabase Studio | http://127.0.0.1:54323 |
+| API Endpoint | http://127.0.0.1:54321 |
+| メール確認（Auth） | http://127.0.0.1:54324 |
+
+---
+
+### ⚙️ VS Code デバッグ設定
+
+`.vscode/launch.json` に4種類の設定を用意済み：
+
+| 設定 | 説明 |
+|------|------|
+| 🏠 Local (Emulator) | ローカルエミュレータ接続 |
+| 📱 Physical Device (Local) | 物理デバイス + ローカル |
+| 🚀 Production (Debug) | 本番デバッグ |
+| 📦 Production (Release) | リリースビルド確認 |
+
+`LOCAL_HOST` を自分の Mac の LAN IP に変更してください。
+
+---
+
+### 🔑 Edge Functions ローカル設定
+
+`supabase/.env.local` に API キーを設定：
+
+```bash
+# GEMINI_API_KEY を取得して設定
+# https://aistudio.google.com/app/apikey
+vi supabase/.env.local  # GEMINI_API_KEY=your_key_here
+
+# Edge Functions をローカルで起動
+make functions-serve
+```
+
+---
+
+### 📦 本番デプロイ
+
+```bash
+# Supabase 本番に Edge Functions をデプロイ
 supabase functions deploy generate-reply
 supabase functions deploy generate-demo-reply
-```
+supabase functions deploy difficulty-updater
+supabase functions deploy fcm-scheduler
+supabase functions deploy revenuecat-webhook
 
-### 3. 環境変数の設定
-
-Edge Functions に秘密鍵を設定：
-
-```bash
+# Secrets を設定
 supabase secrets set GEMINI_API_KEY=your_key
-supabase secrets set STRIPE_SECRET_KEY=your_key
-```
+supabase secrets set REVENUECAT_WEBHOOK_SECRET=your_secret
+supabase secrets set FIREBASE_SERVICE_ACCOUNT_JSON='{"type":"service_account",...}'
 
-### 4. アプリの起動
+# iOS
+make build-ios SUPABASE_URL=https://xxx.supabase.co SUPABASE_ANON_KEY=eyJ... RC_IOS_KEY=appl_xxx
 
-```bash
-flutter run \
-  --dart-define=SUPABASE_URL=https://xxx.supabase.co \
-  --dart-define=SUPABASE_ANON_KEY=your_anon_key
+# Android
+make build-android SUPABASE_URL=https://xxx.supabase.co SUPABASE_ANON_KEY=eyJ... RC_ANDROID_KEY=goog_xxx
 ```
 
 ---

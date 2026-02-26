@@ -1,0 +1,70 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    // ────────────────────────────────────────────────
+    // ローカル開発（Supabase エミュレータ）
+    // 事前に: make local-start
+    // ────────────────────────────────────────────────
+    {
+      "name": "🏠 Local (Emulator)",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "debug",
+      "args": [
+        "--dart-define=ENV=local",
+        "--dart-define=RC_IOS_KEY=appl_dummy_local",
+        "--dart-define=RC_ANDROID_KEY=goog_dummy_local"
+      ]
+    },
+    // ────────────────────────────────────────────────
+    // 物理デバイス（iOS/Android）+ ローカルエミュレータ
+    // LOCAL_HOST: Mac の LAN IP（例: 192.168.1.5）
+    // make local-ip で確認
+    // ────────────────────────────────────────────────
+    {
+      "name": "📱 Physical Device (Local)",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "debug",
+      "args": [
+        "--dart-define=ENV=local",
+        "--dart-define=LOCAL_HOST=192.168.1.100",
+        "--dart-define=RC_IOS_KEY=appl_dummy_local",
+        "--dart-define=RC_ANDROID_KEY=goog_dummy_local"
+      ]
+    },
+    // ────────────────────────────────────────────────
+    // 本番（リリースビルド確認用）
+    // .env.production ファイルの値を手動でここに入れる
+    // ────────────────────────────────────────────────
+    {
+      "name": "🚀 Production (Debug)",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "debug",
+      "args": [
+        "--dart-define=ENV=production",
+        "--dart-define=SUPABASE_URL=${env:SUPABASE_URL}",
+        "--dart-define=SUPABASE_ANON_KEY=${env:SUPABASE_ANON_KEY}",
+        "--dart-define=RC_IOS_KEY=${env:RC_IOS_KEY}",
+        "--dart-define=RC_ANDROID_KEY=${env:RC_ANDROID_KEY}"
+      ]
+    },
+    // ────────────────────────────────────────────────
+    // リリースビルド（App Store / Google Play 提出前確認）
+    // ────────────────────────────────────────────────
+    {
+      "name": "📦 Production (Release)",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "release",
+      "args": [
+        "--dart-define=ENV=production",
+        "--dart-define=SUPABASE_URL=${env:SUPABASE_URL}",
+        "--dart-define=SUPABASE_ANON_KEY=${env:SUPABASE_ANON_KEY}",
+        "--dart-define=RC_IOS_KEY=${env:RC_IOS_KEY}",
+        "--dart-define=RC_ANDROID_KEY=${env:RC_ANDROID_KEY}"
+      ]
+    }
+  ]
+}

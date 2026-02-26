@@ -8,15 +8,20 @@ build/
 *.freezed.dart
 *.mocks.dart
 
-# Env
+# Env（本番・秘密情報は除外）
 .env
-.env.local
-*.env
+.env.production
+*.env.production
+supabase/.env.production
 
 # Supabase
 supabase/.env
 supabase/.branches/
 supabase/functions/.env
+# supabase/.env.local はダミー値なので含める（除外しない）
+
+# iOS プロビジョニング
+ios/Runner/GoogleService-Info.plist
 
 # IDE
 .idea/

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -9,7 +10,6 @@ import 'core/services/env.dart';
 import 'core/services/revenue_cat_service.dart';
 import 'core/services/fcm_service.dart';
 
-// バックグラウンドハンドラーはトップレベルで登録（main より前に呼ばれるため）
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) =>
     firebaseMessagingBackgroundHandler(message);
@@ -17,7 +17,11 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) =>
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // ── Firebase 初期化 ──
+  // 環境設定をデバッグ表示
+  if (kDebugMode) Env.printConfig();
+
+  // ── Firebase 初期化（本番のみ・ローカルはスキップ可）──
+  // ローカル開発時も Firebase は初期化が必要（FCM は実機のみ動作）
   await Firebase.initializeApp();
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
@@ -25,6 +29,10 @@ void main() async {
   await Supabase.initialize(
     url: Env.supabaseUrl,
     anonKey: Env.supabaseAnonKey,
+    // ローカルではHTTPを許可
+    authOptions: FlutterAuthClientOptions(
+      authFlowType: AuthFlowType.implicit,
+    ),
   );
 
   // ── RevenueCat 初期化 ──
