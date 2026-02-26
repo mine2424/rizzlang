@@ -1,11 +1,565 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import '../../../core/providers/auth_provider.dart';
+import '../../../core/services/ai_service.dart';
+import '../../../core/theme/app_theme.dart';
 
-class OnboardingScreen extends ConsumerWidget {
+// ────────────────────────────────────────────────
+// Onboarding ステップ
+// ────────────────────────────────────────────────
+enum _Step { welcome, demoChat, callName, complete }
+
+class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return const Scaffold(body: Center(child: Text('Onboarding — TODO')));
+  ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
+}
+
+class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
+  _Step _step = _Step.welcome;
+  String _selectedCallName = 'オッパ';
+  final TextEditingController _customNameCtrl = TextEditingController();
+  bool _isCustom = false;
+
+  // デモチャット用
+  final List<Map<String, String>> _demoMessages = [];
+  final TextEditingController _demoInputCtrl = TextEditingController();
+  bool _isDemoLoading = false;
+  bool _showSignupPrompt = false;
+
+  // 지우のオープニングメッセージ（デモ用）
+  static const _jiuOpening = '안녕 😊 어제 진짜 행복했어\n（昨日、本当に幸せだったよ）';
+
+  @override
+  void initState() {
+    super.initState();
+    _demoMessages.add({'role': 'jiu', 'content': _jiuOpening});
+  }
+
+  @override
+  void dispose() {
+    _customNameCtrl.dispose();
+    _demoInputCtrl.dispose();
+    super.dispose();
+  }
+
+  // ────────────────────────────────────────────────
+  // ステップ別 Widget
+  // ────────────────────────────────────────────────
+
+  Widget _buildWelcome(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('🌸', style: const TextStyle(fontSize: 72))
+              .animate()
+              .scale(duration: 600.ms, curve: Curves.elasticOut),
+          const SizedBox(height: 24),
+          Text(
+            'ジウと話して\n韓国語を学ぼう',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  height: 1.4,
+                ),
+          )
+              .animate(delay: 200.ms)
+              .fadeIn(duration: 500.ms)
+              .slideY(begin: 0.2, end: 0),
+          const SizedBox(height: 16),
+          Text(
+            'ソウル出身のジウ (지우) と\n疑似恋愛しながら自然な韓国語が身につく',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.white60,
+                  height: 1.6,
+                ),
+          )
+              .animate(delay: 400.ms)
+              .fadeIn(duration: 500.ms),
+          const SizedBox(height: 48),
+          FilledButton(
+            onPressed: () => setState(() => _step = _Step.demoChat),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(52),
+              backgroundColor: AppTheme.primary,
+            ),
+            child: const Text('まず体験してみる', style: TextStyle(fontSize: 16)),
+          )
+              .animate(delay: 600.ms)
+              .fadeIn(duration: 400.ms)
+              .slideY(begin: 0.3, end: 0),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDemoChat(BuildContext context) {
+    return Column(
+      children: [
+        // ヘッダー
+        Container(
+          padding: const EdgeInsets.fromLTRB(16, 48, 16, 16),
+          decoration: BoxDecoration(
+            color: AppTheme.surface,
+            border: Border(bottom: BorderSide(color: Colors.white12)),
+          ),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: AppTheme.primary.withOpacity(0.2),
+                child: const Text('🌸'),
+              ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('지우 (ジウ)', style: Theme.of(context).textTheme.titleMedium),
+                  Text('오늘도 연락해줘서 좋아 ㅎ',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: Colors.white38)),
+                ],
+              ),
+            ],
+          ),
+        ),
+
+        // メッセージ一覧
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: _demoMessages.length,
+            itemBuilder: (context, i) {
+              final msg = _demoMessages[i];
+              final isUser = msg['role'] == 'user';
+              return _DemoBubble(message: msg['content']!, isUser: isUser);
+            },
+          ),
+        ),
+
+        if (_isDemoLoading)
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                const CircleAvatar(radius: 14, child: Text('🌸')),
+                const SizedBox(width: 8),
+                _TypingIndicator(),
+              ],
+            ),
+          ),
+
+        if (_showSignupPrompt) _buildSignupPrompt(context),
+
+        // 入力欄
+        if (!_showSignupPrompt)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _demoInputCtrl,
+                    decoration: InputDecoration(
+                      hintText: '日本語で気持ちを入力...',
+                      hintStyle: TextStyle(color: Colors.white30),
+                      filled: true,
+                      fillColor: AppTheme.surface,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(24),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                FilledButton(
+                  onPressed: _isDemoLoading ? null : _sendDemoMessage,
+                  style: FilledButton.styleFrom(
+                    shape: const CircleBorder(),
+                    padding: const EdgeInsets.all(16),
+                    backgroundColor: AppTheme.primary,
+                  ),
+                  child: const Icon(Icons.send_rounded, size: 20),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Future<void> _sendDemoMessage() async {
+    final text = _demoInputCtrl.text.trim();
+    if (text.isEmpty) return;
+
+    setState(() {
+      _demoMessages.add({'role': 'user', 'content': text});
+      _demoInputCtrl.clear();
+      _isDemoLoading = true;
+    });
+
+    try {
+      final aiService = ref.read(aiServiceProvider);
+      final reply = await aiService.generateDemoReply(text);
+      setState(() {
+        _demoMessages.add({'role': 'jiu', 'content': '${reply.reply}\n\n💡 ${reply.why}'});
+        if (reply.slang.isNotEmpty) {
+          _demoMessages.add({
+            'role': 'system',
+            'content': '📚 ${reply.slang.map((s) => '${s.word} = ${s.meaning}').join('\n')}',
+          });
+        }
+        // 2回目の返信後にサインアップ促進
+        final userMsgCount = _demoMessages.where((m) => m['role'] == 'user').length;
+        if (userMsgCount >= 2) _showSignupPrompt = true;
+      });
+    } catch (e) {
+      setState(() {
+        _demoMessages.add({'role': 'jiu', 'content': 'ちょっと待って... もう一度試して ㅠ'});
+      });
+    } finally {
+      setState(() => _isDemoLoading = false);
+    }
+  }
+
+  Widget _buildSignupPrompt(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppTheme.primary.withOpacity(0.15), AppTheme.primary.withOpacity(0.05)],
+        ),
+        border: Border.all(color: AppTheme.primary.withOpacity(0.4)),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          Text(
+            '지우がもっと話したそうにしています... 🥺',
+            textAlign: TextAlign.center,
+            style: Theme.of(context)
+                .textTheme
+                .titleSmall
+                ?.copyWith(color: AppTheme.primary, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+          FilledButton(
+            onPressed: () => setState(() => _step = _Step.callName),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(48),
+              backgroundColor: AppTheme.primary,
+            ),
+            child: const Text('続きを読む — 無料でサインアップ'),
+          ),
+        ],
+      ),
+    ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.2, end: 0);
+  }
+
+  Widget _buildCallName(BuildContext context) {
+    const options = ['오빠 (オッパ)', '자기야 (自分)', 'カスタム'];
+    return Padding(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('🌸', style: const TextStyle(fontSize: 56))
+              .animate()
+              .scale(duration: 500.ms, curve: Curves.elasticOut),
+          const SizedBox(height: 24),
+          Text(
+            '지우からなんて\n呼ばれたい?',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  height: 1.4,
+                ),
+          ),
+          const SizedBox(height: 32),
+          ...['오빠 (オッパ)', '자기야 (自分)'].map(
+            (label) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _CallNameOption(
+                label: label,
+                isSelected: !_isCustom && _selectedCallName == label.split(' ').first,
+                onTap: () => setState(() {
+                  _isCustom = false;
+                  _selectedCallName = label.split(' ').first;
+                }),
+              ),
+            ),
+          ),
+          // カスタム入力
+          _CallNameOption(
+            label: 'カスタム',
+            isSelected: _isCustom,
+            onTap: () => setState(() => _isCustom = true),
+          ),
+          if (_isCustom) ...[
+            const SizedBox(height: 12),
+            TextField(
+              controller: _customNameCtrl,
+              autofocus: true,
+              decoration: InputDecoration(
+                hintText: '呼んでほしい名前を入力',
+                filled: true,
+                fillColor: AppTheme.surface,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              ),
+              onChanged: (v) => _selectedCallName = v.isEmpty ? 'オッパ' : v,
+            ),
+          ],
+          const SizedBox(height: 40),
+          FilledButton(
+            onPressed: _goToComplete,
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(52),
+              backgroundColor: AppTheme.primary,
+            ),
+            child: const Text('決定する', style: TextStyle(fontSize: 16)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _goToComplete() async {
+    final callName = _isCustom && _customNameCtrl.text.isNotEmpty
+        ? _customNameCtrl.text
+        : _selectedCallName;
+
+    // Supabase へ呼称を保存
+    try {
+      final currentUser = ref.read(currentUserProvider);
+      if (currentUser != null) {
+        final client = ref.read(supabaseClientProvider);
+        await client
+            .from('users')
+            .update({'user_call_name': callName})
+            .eq('id', currentUser.id);
+      }
+    } catch (_) {
+      // 保存失敗してもオンボーディングは続行
+    }
+
+    setState(() => _step = _Step.complete);
+    await Future.delayed(const Duration(milliseconds: 1800));
+    if (mounted) context.go('/chat');
+  }
+
+  Widget _buildComplete(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('❤️', style: const TextStyle(fontSize: 72))
+              .animate()
+              .scale(duration: 600.ms, curve: Curves.elasticOut),
+          const SizedBox(height: 24),
+          Text(
+            '지우との会話を始めよう',
+            style: Theme.of(context)
+                .textTheme
+                .headlineSmall
+                ?.copyWith(fontWeight: FontWeight.bold),
+          )
+              .animate(delay: 300.ms)
+              .fadeIn(duration: 500.ms),
+          const SizedBox(height: 8),
+          Text(
+            '스크린에 연결 중... (接続中)',
+            style: Theme.of(context)
+                .textTheme
+                .bodyMedium
+                ?.copyWith(color: Colors.white38),
+          )
+              .animate(delay: 500.ms)
+              .fadeIn(duration: 400.ms),
+        ],
+      ),
+    );
+  }
+
+  // ────────────────────────────────────────────────
+  // Build
+  // ────────────────────────────────────────────────
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppTheme.background,
+      body: SafeArea(
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          child: switch (_step) {
+            _Step.welcome => _buildWelcome(context),
+            _Step.demoChat => _buildDemoChat(context),
+            _Step.callName => _buildCallName(context),
+            _Step.complete => _buildComplete(context),
+          },
+        ),
+      ),
+    );
+  }
+}
+
+// ────────────────────────────────────────────────
+// サブウィジェット
+// ────────────────────────────────────────────────
+
+class _DemoBubble extends StatelessWidget {
+  const _DemoBubble({required this.message, required this.isUser});
+  final String message;
+  final bool isUser;
+
+  @override
+  Widget build(BuildContext context) {
+    final isSystem = !isUser && message.startsWith('📚');
+    if (isSystem) {
+      return Container(
+        margin: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white12),
+        ),
+        child: Text(message, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          if (!isUser) ...[
+            const CircleAvatar(radius: 14, child: Text('🌸')),
+            const SizedBox(width: 8),
+          ],
+          Flexible(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: isUser ? AppTheme.primary : AppTheme.surface,
+                borderRadius: BorderRadius.only(
+                  topLeft: const Radius.circular(16),
+                  topRight: const Radius.circular(16),
+                  bottomLeft: Radius.circular(isUser ? 16 : 4),
+                  bottomRight: Radius.circular(isUser ? 4 : 16),
+                ),
+              ),
+              child: Text(
+                message,
+                style: TextStyle(
+                  color: isUser ? Colors.white : Colors.white.withOpacity(0.9),
+                  height: 1.5,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn(duration: 300.ms).slideY(begin: 0.1, end: 0);
+  }
+}
+
+class _TypingIndicator extends StatefulWidget {
+  @override
+  State<_TypingIndicator> createState() => _TypingIndicatorState();
+}
+
+class _TypingIndicatorState extends State<_TypingIndicator>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 900))
+      ..repeat();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (_, __) => Row(
+        children: List.generate(3, (i) {
+          final delay = i / 3;
+          final t = (_ctrl.value - delay).clamp(0.0, 1.0);
+          final opacity = (0.3 + 0.7 * (t < 0.5 ? t * 2 : (1 - t) * 2)).clamp(0.3, 1.0);
+          return Container(
+            margin: const EdgeInsets.symmetric(horizontal: 2),
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(opacity),
+              shape: BoxShape.circle,
+            ),
+          );
+        }),
+      ),
+    );
+  }
+}
+
+class _CallNameOption extends StatelessWidget {
+  const _CallNameOption({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        decoration: BoxDecoration(
+          color: isSelected ? AppTheme.primary.withOpacity(0.15) : AppTheme.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected ? AppTheme.primary : Colors.white12,
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 16,
+            color: isSelected ? AppTheme.primary : Colors.white70,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+      ),
+    );
   }
 }

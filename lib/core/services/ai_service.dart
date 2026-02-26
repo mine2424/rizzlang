@@ -1,5 +1,11 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/message_model.dart';
+import '../providers/auth_provider.dart';
+
+final aiServiceProvider = Provider<AIService>((ref) {
+  return AIService(ref.watch(supabaseClientProvider));
+});
 
 /// Supabase Edge Function 経由で Gemini 1.5 Flash を呼び出すサービス
 /// APIキーはEdge Function側でのみ管理し、クライアントに露出しない
