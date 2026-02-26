@@ -48,8 +48,8 @@ dependencies:
   shimmer: ^3.0.0
   lottie: ^3.1.0                    # Lottieアニメーション（紙吹雪等）
 
-  # Stripe
-  flutter_stripe: ^10.1.1
+  # RevenueCat (In-App Purchase)
+  purchases_flutter: ^7.10.0
 
   # ユーティリティ
   intl: ^0.19.0

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../paywall/paywall_sheet.dart';
 import '../providers/chat_provider.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/reply_panel.dart';
@@ -38,13 +39,25 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     });
   }
 
+  Future<void> _showPaywall() async {
+    final purchased = await showPaywallSheet(context);
+    if (purchased && mounted) {
+      ref.read(chatProvider.notifier).onProUpgraded();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final chatState = ref.watch(chatProvider);
 
+    // メッセージ追加時に末尾へスクロール
     ref.listen(chatProvider, (prev, next) {
       if (next.messages.length != prev?.messages.length) {
         _scrollToBottom();
+      }
+      // 上限到達 → ペイウォール自動表示
+      if (next.isLimitExceeded && !(prev?.isLimitExceeded ?? false)) {
+        _showPaywall();
       }
     });
 
@@ -69,6 +82,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             ),
           ],
         ),
+        actions: [
+          // 残り回数バッジ (Pro なら非表示)
+          if (chatState.turnsRemaining >= 0)
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: _TurnsRemainingBadge(
+                remaining: chatState.turnsRemaining,
+                onTap: _showPaywall,
+              ),
+            ),
+        ],
       ),
       body: Column(
         children: [
@@ -97,13 +121,73 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           if (chatState.lastReply != null)
             ReplyPanel(reply: chatState.lastReply!),
 
-          // 入力エリア
-          _buildInputArea(chatState),
+          // 入力エリア or ペイウォールバナー
+          chatState.isLimitExceeded
+              ? _buildPaywallBanner(context)
+              : _buildInputArea(chatState),
         ],
       ),
     );
   }
 
+  // ────────────────────────────────────────────────
+  // ペイウォールバナー（上限到達時に入力エリアを差し替え）
+  // ────────────────────────────────────────────────
+  Widget _buildPaywallBanner(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        border: Border(top: BorderSide(color: AppTheme.primary.withOpacity(0.3))),
+      ),
+      child: Column(
+        children: [
+          // 지우のメッセージ
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const CircleAvatar(radius: 16, child: Text('🌸')),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.06),
+                    borderRadius: const BorderRadius.only(
+                      topRight: Radius.circular(14),
+                      bottomLeft: Radius.circular(14),
+                      bottomRight: Radius.circular(14),
+                    ),
+                  ),
+                  child: Text(
+                    '오빠... 오늘 대화 끝났어 ㅠ\nもっと話したいのに...',
+                    style: TextStyle(color: Colors.white70, height: 1.5),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          FilledButton(
+            onPressed: _showPaywall,
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(52),
+              backgroundColor: AppTheme.primary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+            child: const Text(
+              '지우との会話を続ける — Pro にアップグレード',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.15, end: 0);
+  }
+
+  // ────────────────────────────────────────────────
+  // 通常入力エリア
+  // ────────────────────────────────────────────────
   Widget _buildInputArea(ChatState chatState) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -150,11 +234,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 ),
                 child: chatState.isGenerating
                     ? const SizedBox(
-                        width: 18, height: 18,
+                        width: 18,
+                        height: 18,
                         child: CircularProgressIndicator(
                             strokeWidth: 2, color: Colors.white),
                       )
-                    : const Text('✦ 変換', style: TextStyle(fontWeight: FontWeight.bold)),
+                    : const Text('✦ 変換',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
               ),
             ],
           ),
@@ -168,5 +254,43 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (text.isEmpty) return;
     ref.read(chatProvider.notifier).generateReply(text);
     _inputController.clear();
+  }
+}
+
+// ────────────────────────────────────────────────
+// 残り回数バッジ (AppBar 右端)
+// ────────────────────────────────────────────────
+class _TurnsRemainingBadge extends StatelessWidget {
+  const _TurnsRemainingBadge({required this.remaining, required this.onTap});
+  final int remaining;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final isEmpty = remaining <= 0;
+    return GestureDetector(
+      onTap: isEmpty ? onTap : null,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: isEmpty
+              ? AppTheme.primary.withOpacity(0.15)
+              : Colors.white.withOpacity(0.07),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isEmpty ? AppTheme.primary.withOpacity(0.5) : Colors.white12,
+          ),
+        ),
+        child: Text(
+          isEmpty ? '⚡ アップグレード' : '残り ${remaining}回',
+          style: TextStyle(
+            fontSize: 11,
+            color: isEmpty ? AppTheme.primary : Colors.white54,
+            fontWeight: isEmpty ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+      ),
+    );
   }
 }

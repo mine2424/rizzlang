@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import '../services/revenue_cat_service.dart';
 
 final supabaseClientProvider = Provider<SupabaseClient>((ref) {
   return Supabase.instance.client;
@@ -29,11 +30,15 @@ class AuthNotifier extends StateNotifier<AsyncValue<void>> {
         return;
       }
       final googleAuth = await googleUser.authentication;
-      await _supabase.auth.signInWithIdToken(
+      final res = await _supabase.auth.signInWithIdToken(
         provider: OAuthProvider.google,
         idToken: googleAuth.idToken!,
         accessToken: googleAuth.accessToken,
       );
+      // RevenueCat に Supabase UID を紐付け
+      if (res.user != null) {
+        await RevenueCatService.logIn(res.user!.id);
+      }
       state = const AsyncValue.data(null);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
@@ -53,6 +58,7 @@ class AuthNotifier extends StateNotifier<AsyncValue<void>> {
   Future<void> signOut() async {
     await _supabase.auth.signOut();
     await GoogleSignIn().signOut();
+    await RevenueCatService.logOut(); // RevenueCat セッションもクリア
   }
 }
 

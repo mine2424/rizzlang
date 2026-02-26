@@ -186,27 +186,27 @@
 
 ---
 
-- [ ] 9. フリーミアム課金（Stripe）
+- [x] 9. フリーミアム課金（RevenueCat）
 
-- [ ] 9.1 Stripe 連携セットアップ
+- [x] 9.1 RevenueCat 連携セットアップ
   - Stripe アカウントに Pro プラン（¥1,480/月）のサブスクリプション商品を作成
   - `flutter_stripe` パッケージの初期化（iOS: `AppDelegate` 設定、Android: `build.gradle` 設定）
   - Stripe Webhook のエンドポイント（`/functions/v1/stripe-webhook`）を Stripe Dashboard に登録
   - Webhook Secret を Supabase Edge Function の Secrets に設定
   - _Requirements: 8.3_
 
-- [ ] 9.2 Checkout Session の生成とペイウォール UI
-  - `supabase/functions/create-checkout/index.ts` を実装し Stripe Checkout URL を返す
-  - 無料上限到達時にペイウォール BottomSheet を表示する Flutter UI を実装
-  - ペイウォールに「지우がもっと話したそうにしています...」コピーと料金表示・アップグレードボタンを配置
+- [x] 9.2 ペイウォール UI の実装
+  - `lib/features/paywall/paywall_sheet.dart` — BottomSheet 形式のペイウォール実装
+  - 지우のキャラクターメッセージ + 特典リスト + 価格表示 + 購入ボタン + 復元ボタン
+  - Chat 画面上限到達時に自動表示 + 入力エリアを差し替えバナーで置換
   - _Requirements: 8.1, 8.2, 8.3_
 
-- [ ] 9.3 Stripe Webhook ハンドラーの実装
-  - `supabase/functions/stripe-webhook/index.ts` を実装
-  - `stripe.webhooks.constructEvent()` で署名検証を必ず実施
-  - `checkout.session.completed` で `users.plan = 'pro'` に更新
-  - `customer.subscription.deleted` で `users.plan = 'free'` に戻す
-  - Stripe イベント ID を idempotency キーとして重複処理を防止
+- [x] 9.3 RevenueCat Webhook ハンドラーの実装
+  - `supabase/functions/revenuecat-webhook/index.ts` を実装
+  - Authorization ヘッダーで署名検証
+  - INITIAL_PURCHASE / RENEWAL → `users.plan = 'pro'`
+  - EXPIRATION / BILLING_ISSUE → `users.plan = 'free'`
+  - SANDBOX イベントはスキップ（本番環境に影響させない）
   - _Requirements: 8.4, 8.5, 8.6_
 
 ---
@@ -304,7 +304,7 @@
 | 6 | 難易度エンジン（7日集計+自動更新Cron） | ✅ 完了 |
 | 7 | 語彙帳 | 🔶 自動保存ロジック✅ / UI実装残 |
 | 8 | ストリーク | 🔶 バックエンド✅ / マイルストーンUI残 |
-| 9 | Stripe課金 | ❌ 未着手 |
+| 9 | RevenueCat課金（ペイウォール込み） | ✅ 完了 |
 | 10 | FCM通知 | ❌ 未着手 |
 | 11 | ホーム・設定スタブ | ✅ 完了 |
 | 12 | セキュリティ・最適化 | ❌ 未着手 |
