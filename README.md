@@ -184,6 +184,10 @@ make functions-serve
 
 ---
 
+> **外部サービスの初期セットアップ（Supabase・Firebase・RevenueCat・App Store）は [SETUP.md](SETUP.md) を参照してください。**
+
+---
+
 ### 📦 本番デプロイ
 
 ```bash
