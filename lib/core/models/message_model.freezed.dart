@@ -124,6 +124,10 @@ class _$GeneratedReplyImpl implements _GeneratedReply {
     required this.why,
     this.slang = const [],
     required this.nextMessage,
+    this.tensionPhase,
+    this.phaseTransition,
+    this.phaseComplete = false,
+    this.turnsRemaining,
   });
 
   @override
@@ -134,6 +138,14 @@ class _$GeneratedReplyImpl implements _GeneratedReply {
   final List<SlangItem> slang;
   @override
   final String nextMessage;
+  @override
+  final String? tensionPhase;
+  @override
+  final String? phaseTransition;
+  @override
+  final bool phaseComplete;
+  @override
+  final int? turnsRemaining;
 
   @override
   bool operator ==(Object other) =>
@@ -148,7 +160,9 @@ class _$GeneratedReplyImpl implements _GeneratedReply {
 
   @override
   String toString() =>
-      'GeneratedReply(reply: $reply, why: $why, slang: $slang, nextMessage: $nextMessage)';
+      'GeneratedReply(reply: $reply, why: $why, slang: $slang, '
+      'nextMessage: $nextMessage, tensionPhase: $tensionPhase, '
+      'phaseTransition: $phaseTransition, phaseComplete: $phaseComplete)';
 
   @override
   Map<String, dynamic> toJson() => _$GeneratedReplyToJson(this);
@@ -160,6 +174,10 @@ abstract class _GeneratedReply implements GeneratedReply {
     required String why,
     List<SlangItem> slang,
     required String nextMessage,
+    String? tensionPhase,
+    String? phaseTransition,
+    bool phaseComplete,
+    int? turnsRemaining,
   }) = _$GeneratedReplyImpl;
 
   @override
@@ -170,6 +188,14 @@ abstract class _GeneratedReply implements GeneratedReply {
   List<SlangItem> get slang;
   @override
   String get nextMessage;
+  @override
+  String? get tensionPhase;
+  @override
+  String? get phaseTransition;
+  @override
+  bool get phaseComplete;
+  @override
+  int? get turnsRemaining;
   @override
   Map<String, dynamic> toJson();
 }

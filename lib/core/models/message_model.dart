@@ -33,10 +33,14 @@ class SlangItem with _$SlangItem {
 @freezed
 class GeneratedReply with _$GeneratedReply {
   const factory GeneratedReply({
-    required String reply,           // 韓国語返信
-    required String why,             // 理由（30文字以内）
-    @Default([]) List<SlangItem> slang, // スラング解説
-    required String nextMessage,     // 地우の次のセリフ
+    required String reply,               // 韓国語返信
+    required String why,                 // 理由（30文字以内）
+    @Default([]) List<SlangItem> slang,  // スラング解説
+    required String nextMessage,         // 地우の次のセリフ
+    String? tensionPhase,                // 'friction' | 'reconciliation' | null
+    String? phaseTransition,             // 'reconciliation' への移行通知
+    @Default(false) bool phaseComplete,  // 仲直り完了フラグ → 関係値+1アニメ
+    int? turnsRemaining,                 // 残りターン数（-1 = Pro）
   }) = _GeneratedReply;
 
   factory GeneratedReply.fromJson(Map<String, dynamic> json) =>

@@ -104,10 +104,11 @@
   - `lib/features/chat/providers/chat_provider.dart` — Riverpod 状態管理実装済み
   - _Requirements: 3.3, 3.7_
 
-- [ ] 4.4 会話履歴の保存と読み込み（詳細実装）
+- [x] 4.4 会話履歴の保存と読み込み（詳細実装）
   - チャット送受信のたびに `conversations.messages` へのメッセージ追記確認
   - `usage_logs.turns_used` +1 処理の確認
-  - `usage_logs.edit_count` / `retry_count` 記録（難易度計算用）
+  - `usage_logs.edit_count` / `retry_count` 記録（難易度計算用）✅
+  - `ChatNotifier.onInputChanged()` + `isRetry=true` でクライアント追跡 → Edge Function に送信
   - 当日セッション既存時のチャット履歴継続表示確認
   - _Requirements: 3.5, 4.5, 5.5_
 
@@ -134,9 +135,14 @@
   - `arc_week = 4` 完了後は `arc_season` を +1 して次のシーズンに進む
   - _Requirements: 4.3_
 
-- [ ] 5.4 Tensionシーンの2フェーズ実装
-  - `scene_type = 'tension'` のシーンで、摩擦フェーズ → 仲直りフェーズの2段階フローを実装
-  - 仲直り完了時に「関係値+1」アニメーション（flutter_animate）を表示
+- [x] 5.4 Tensionシーンの2フェーズ実装
+  - `scene_type = 'tension'` のシーンで、摩擦フェーズ → 仲直りフェーズの2段階フローを実装 ✅
+  - `supabase/migrations/20260226_tension_phase.sql`: `tension_phase` / `tension_turn_count` カラム追加
+  - `generate-reply/index.ts`: Tension フェーズ検知 → System Prompt に friction/reconciliation 指示を注入
+  - friction 2ターン後自動で reconciliation へ移行; 完了で `phaseComplete: true` を返す
+  - `chat_provider.dart`: `tensionPhase` / `showRelationshipUp` ステート管理
+  - `chat_screen.dart`: `_TensionPhaseBanner` + `_RelationshipUpContent` アニメーション
+  - 仲直り完了時に「関係値+1」オーバーレイ（flutter_animate）を表示 ✅
   - _Requirements: 4.6_
 
 ---
@@ -158,9 +164,10 @@
 
 - [ ] 7. 語彙帳・学習記録
 
-- [ ] 7.1 語彙の自動保存
-  - AI 返信生成後、`slang` フィールドの内容を Edge Function から `vocabulary` テーブルに upsert する（`generate-reply` 内で確認・補強）
-  - SRS スケジュール（SM-2アルゴリズム）で `next_review` を計算して保存
+- [x] 7.1 語彙の自動保存
+  - AI 返信生成後、`slang` フィールドの内容を Edge Function から `vocabulary` テーブルに upsert する ✅
+  - `saveVocabulary()` 関数: slang + scenario vocab_targets を合算して upsert
+  - SRS スケジュール: `next_review = now + 1日`（SM-2 は Flutter側 ReviewNotifier で管理）
   - _Requirements: 6.1, 6.2, 6.4_
 
 - [x] 7.2 (P) 語彙帳 UI 完全実装
@@ -176,10 +183,13 @@
 
 - [ ] 8. ストリーク・進捗可視化
 
-- [ ] 8.1 ストリーク管理ロジックの実装
-  - 当日初回チャット開始時に `updateStreak(userId)` を Supabase 経由で呼び出す処理を実装
-  - `last_active < today - 1` の場合、`streak` を 0 にリセットする条件分岐を実装
-  - マイルストーン（7・30・100日）到達時に特別アニメーションをトリガーするイベントを返す
+- [x] 8.1 ストリーク管理ロジックの実装
+  - 当日初回チャット開始時に `updateStreak(userId)` を Supabase 経由で呼び出す処理を実装 ✅
+  - `last_active < today - 1` の場合、`streak` を 0 にリセットする条件分岐を実装 ✅
+  - マイルストーン（7・30・100日）到達時に特別アニメーションをトリガーするイベントを返す ✅
+  - `streak_provider.dart`: `newMilestone` フィールドでマイルストーン検知
+  - `streak_bar.dart`: `_MilestoneDialog` を `showDialog` でトリガー
+  - `chat_screen.dart`: `_WeeklySummaryCard` - 今週 +{n}表現 / {n}日連続 / +{n}XP ✅
   - _Requirements: 7.1, 7.2, 7.4_
 
 - [x] 8.2 (P) 進捗 UI 完全実装

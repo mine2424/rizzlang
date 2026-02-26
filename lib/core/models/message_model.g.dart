@@ -50,6 +50,10 @@ _$GeneratedReplyImpl _$GeneratedReplyFromJson(Map<String, dynamic> json) =>
               .toList() ??
           const [],
       nextMessage: json['nextMessage'] as String,
+      tensionPhase: json['tensionPhase'] as String?,
+      phaseTransition: json['phaseTransition'] as String?,
+      phaseComplete: json['phaseComplete'] as bool? ?? false,
+      turnsRemaining: json['turnsRemaining'] as int?,
     );
 
 Map<String, dynamic> _$GeneratedReplyToJson(_$GeneratedReplyImpl instance) =>
@@ -58,4 +62,8 @@ Map<String, dynamic> _$GeneratedReplyToJson(_$GeneratedReplyImpl instance) =>
       'why': instance.why,
       'slang': instance.slang.map((e) => e.toJson()).toList(),
       'nextMessage': instance.nextMessage,
+      if (instance.tensionPhase != null) 'tensionPhase': instance.tensionPhase,
+      if (instance.phaseTransition != null) 'phaseTransition': instance.phaseTransition,
+      'phaseComplete': instance.phaseComplete,
+      if (instance.turnsRemaining != null) 'turnsRemaining': instance.turnsRemaining,
     };

@@ -21,6 +21,8 @@ class AIService {
     required List<MessageModel> history,
     required int userLevel,
     required String userCallName,
+    int editCount = 0,
+    int retryCount = 0,
   }) async {
     final response = await _supabase.functions.invoke(
       'generate-reply',
@@ -30,6 +32,8 @@ class AIService {
         'history': history.map((m) => m.toJson()).toList(),
         'userLevel': userLevel,
         'userCallName': userCallName,
+        'editCount': editCount,
+        'retryCount': retryCount,
       },
     );
 

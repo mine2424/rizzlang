@@ -16,9 +16,12 @@ interface GeneratedReply {
   why: string
   slang: SlangItem[]
   nextMessage: string
+  phaseTransition?: string   // 'reconciliation' | null
+  phaseComplete?: boolean    // reconciliation 完了時 true
 }
 
 type TimeOfDay = 'morning' | 'afternoon' | 'evening' | 'night'
+type TensionPhase = 'friction' | 'reconciliation' | 'resolved' | null
 
 interface Scenario {
   id: string
@@ -143,12 +146,34 @@ function buildSystemPrompt(params: {
   timeOfDay: TimeOfDay
   contextNote?: string
   nextMessageHint?: string
+  tensionPhase?: TensionPhase
 }): string {
   const levelGuides: Record<number, string> = {
     1: '初級（短文・基本挨拶・感情語のみ。文は1〜2文。ひらがな感覚の短い返答）',
     2: 'スラング入門（ㅋㅋ・ㅠㅠ・헐・대박などを自然に使う。2〜3文）',
     3: '複合表現（〜겠다・〜잖아・〜네 などを使う。感情と意図を豊かに表現。2〜3文）',
     4: 'ネイティブ感性（慣用句・間接話法・詩的表現を使う。自然なソウル口語。2〜3文）',
+  }
+
+  // Tension フェーズ別の特別指示
+  let tensionInstruction = ''
+  if (params.tensionPhase === 'friction') {
+    tensionInstruction = `
+【⚠️ TENSION シーン - 摩擦フェーズ】
+今、지우とユーザーの間に小さなすれ違いが起きています。
+- 地우は少し拗ねている・傷ついている状態です
+- 返答は短め、やや素っ気なく、でも突き放しすぎない
+- ㅠㅠ を多用する。핑계 대지 마（言い訳しないで）などのフレーズを使う
+- ユーザーが謝ったり優しい言葉をかければ柔らかくなる余地を残す
+- nextMessage はユーザーが仲直りしたくなるような少し寂しそうな一言`
+  } else if (params.tensionPhase === 'reconciliation') {
+    tensionInstruction = `
+【💕 TENSION シーン - 仲直りフェーズ】
+ユーザーが優しい言葉をかけてくれたので、地우は心を開き始めています。
+- 最初は少し照れくさそうだが、だんだん甘えてくる
+- 화해（仲直り）の表現を使う: 나도 미안해 / 역시 오빠가 최고야 など
+- 普段より少し甘えた口調に戻す
+- nextMessage は仲直り後の温かい一言・関係が深まった感を出す`
   }
 
   return `あなたは${params.characterName}です。ソウル出身のデザイン学生（25歳）で、今${params.userCallName}と付き合い始めたばかりです。
@@ -165,6 +190,7 @@ ${levelGuides[params.userLevel] ?? levelGuides[2]}
 
 ${params.contextNote ? `【シーン背景】\n${params.contextNote}\n` : ''}
 ${params.nextMessageHint ? `【地우の次のひと言ヒント（参考）】\n"${params.nextMessageHint}"\n` : ''}
+${tensionInstruction}
 
 【絶対ルール】
 - 前の会話の文脈を必ず引き継ぐ
@@ -253,7 +279,13 @@ serve(async (req: Request) => {
     }
 
     // ── リクエストボディ ──
-    const { userText, conversationId, characterId } = await req.json()
+    const {
+      userText,
+      conversationId,
+      characterId,
+      editCount = 0,    // Flutter側で追跡した編集回数
+      retryCount = 0,   // Flutter側で追跡したリトライ回数
+    } = await req.json()
     const CHARACTER_ID = characterId ?? 'c1da0000-0000-0000-0000-000000000001'
     const today = new Date().toISOString().split('T')[0]
 
@@ -340,6 +372,64 @@ serve(async (req: Request) => {
       userData.current_level
     )
 
+    // ── Tension フェーズ管理 ──
+    let currentTensionPhase: TensionPhase = null
+    let phaseTransition: string | null = null
+    let phaseComplete = false
+
+    if (scenario?.scene_type === 'tension') {
+      const { data: prog } = await supabase
+        .from('user_scenario_progress')
+        .select('tension_phase, tension_turn_count')
+        .eq('user_id', user.id)
+        .eq('character_id', CHARACTER_ID)
+        .single()
+
+      const storedPhase = (prog?.tension_phase ?? null) as TensionPhase
+      const turnCount = (prog?.tension_turn_count ?? 0) as number
+
+      if (storedPhase === null || storedPhase === 'friction') {
+        if (storedPhase === null) {
+          // 初回 tension シーン → friction フェーズ開始
+          await supabase
+            .from('user_scenario_progress')
+            .update({ tension_phase: 'friction', tension_turn_count: 1 })
+            .eq('user_id', user.id)
+            .eq('character_id', CHARACTER_ID)
+          currentTensionPhase = 'friction'
+        } else if (turnCount >= 2) {
+          // friction 2ターン消化 → reconciliation へ移行
+          await supabase
+            .from('user_scenario_progress')
+            .update({ tension_phase: 'reconciliation', tension_turn_count: 0 })
+            .eq('user_id', user.id)
+            .eq('character_id', CHARACTER_ID)
+          currentTensionPhase = 'reconciliation'
+          phaseTransition = 'reconciliation'
+        } else {
+          // friction 継続
+          await supabase
+            .from('user_scenario_progress')
+            .update({ tension_turn_count: turnCount + 1 })
+            .eq('user_id', user.id)
+            .eq('character_id', CHARACTER_ID)
+          currentTensionPhase = 'friction'
+        }
+      } else if (storedPhase === 'reconciliation') {
+        // reconciliation → resolved（仲直り完了）
+        await supabase
+          .from('user_scenario_progress')
+          .update({ tension_phase: 'resolved', tension_turn_count: 0 })
+          .eq('user_id', user.id)
+          .eq('character_id', CHARACTER_ID)
+        currentTensionPhase = 'reconciliation' // この返信はまだ reconciliation モード
+        phaseComplete = true
+      } else {
+        // resolved: 通常モードに戻る
+        currentTensionPhase = null
+      }
+    }
+
     // ── Gemini System Prompt 構築 ──
     const timeOfDay = getTimeOfDay()
     const systemPrompt = buildSystemPrompt({
@@ -350,6 +440,7 @@ serve(async (req: Request) => {
       timeOfDay,
       contextNote: scenario?.context_note,
       nextMessageHint: scenario?.next_message_hint,
+      tensionPhase: currentTensionPhase,
     })
 
     // ── Gemini API 呼び出し（3回リトライ）──
@@ -419,13 +510,22 @@ serve(async (req: Request) => {
       { onConflict: 'user_id,character_id,date' }
     )
 
-    // usage_logs を upsert
+    // usage_logs を upsert（edit_count / retry_count を累積加算）
+    const { data: existingLog } = await supabase
+      .from('usage_logs')
+      .select('edit_count, retry_count')
+      .eq('user_id', user.id)
+      .eq('date', today)
+      .maybeSingle()
+
     await supabase.from('usage_logs').upsert(
       {
         user_id: user.id,
         date: today,
         turns_used: turnsUsed + 1,
         character_id: CHARACTER_ID,
+        edit_count: (existingLog?.edit_count ?? 0) + editCount,
+        retry_count: (existingLog?.retry_count ?? 0) + retryCount,
       },
       { onConflict: 'user_id,date' }
     )
@@ -461,6 +561,10 @@ serve(async (req: Request) => {
         scenarioDay: scenario ? `S${scenario.arc_season}W${scenario.arc_week}D${scenario.arc_day}` : null,
         turnsRemaining: userData.plan === 'free' ? FREE_LIMIT - (turnsUsed + 1) : -1,
         streakUpdated: userData.last_active !== today,
+        // Tension フェーズ情報
+        tensionPhase: currentTensionPhase,
+        phaseTransition,   // 'reconciliation' | null
+        phaseComplete,     // true = 仲直り完了 → 関係値+1 アニメーション
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../paywall/paywall_sheet.dart';
 import '../providers/chat_provider.dart';
+import '../providers/streak_provider.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/reply_panel.dart';
 import '../widgets/streak_bar.dart';
@@ -16,14 +17,26 @@ class ChatScreen extends ConsumerStatefulWidget {
   ConsumerState<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatScreenState extends ConsumerState<ChatScreen> {
+class _ChatScreenState extends ConsumerState<ChatScreen>
+    with SingleTickerProviderStateMixin {
   final _inputController = TextEditingController();
   final _scrollController = ScrollController(keepScrollOffset: true);
+  late final AnimationController _relationshipAnimCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _relationshipAnimCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+  }
 
   @override
   void dispose() {
     _inputController.dispose();
     _scrollController.dispose();
+    _relationshipAnimCtrl.dispose();
     super.dispose();
   }
 
@@ -59,74 +72,116 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       if (next.isLimitExceeded && !(prev?.isLimitExceeded ?? false)) {
         _showPaywall();
       }
+      // 仲直り完了 → 関係値+1 アニメーション
+      if (next.showRelationshipUp && !(prev?.showRelationshipUp ?? false)) {
+        _relationshipAnimCtrl.forward(from: 0);
+        Future.delayed(const Duration(milliseconds: 2500), () {
+          if (mounted) ref.read(chatProvider.notifier).dismissRelationshipUp();
+        });
+      }
     });
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          children: [
-            CircleAvatar(
-              radius: 18,
-              backgroundColor: AppTheme.primary.withOpacity(0.2),
-              child: const Text('🌸', style: TextStyle(fontSize: 18)),
-            ),
-            const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return Stack(
+      children: [
+        Scaffold(
+          appBar: AppBar(
+            title: Row(
               children: [
-                const Text('지우 (ジウ)',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-                Text('🇰🇷 ソウル出身 · オンライン',
-                    style: TextStyle(fontSize: 11, color: AppTheme.muted)),
+                CircleAvatar(
+                  radius: 18,
+                  backgroundColor: AppTheme.primary.withOpacity(0.2),
+                  child: const Text('🌸', style: TextStyle(fontSize: 18)),
+                ),
+                const SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('지우 (ジウ)',
+                        style:
+                            TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                    Text('🇰🇷 ソウル出身 · オンライン',
+                        style: TextStyle(fontSize: 11, color: AppTheme.muted)),
+                  ],
+                ),
               ],
             ),
-          ],
-        ),
-        actions: [
-          // 残り回数バッジ (Pro なら非表示)
-          if (chatState.turnsRemaining >= 0)
-            Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: _TurnsRemainingBadge(
-                remaining: chatState.turnsRemaining,
-                onTap: _showPaywall,
-              ),
-            ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // ストリークバー
-          const StreakBar(),
-
-          // チャットメッセージ一覧
-          Expanded(
-            child: chatState.isLoading && chatState.messages.isEmpty
-                ? const Center(child: CircularProgressIndicator())
-                : ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.all(16),
-                    itemCount: chatState.messages.length,
-                    itemBuilder: (context, index) {
-                      final message = chatState.messages[index];
-                      return MessageBubble(message: message)
-                          .animate()
-                          .fadeIn(duration: 200.ms)
-                          .slideY(begin: 0.1, end: 0);
-                    },
+            actions: [
+              // 残り回数バッジ (Pro なら非表示)
+              if (chatState.turnsRemaining >= 0)
+                Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: _TurnsRemainingBadge(
+                    remaining: chatState.turnsRemaining,
+                    onTap: _showPaywall,
                   ),
+                ),
+            ],
           ),
+          body: Column(
+            children: [
+              // ストリークバー
+              const StreakBar(),
 
-          // AI返信パネル（生成結果表示）
-          if (chatState.lastReply != null)
-            ReplyPanel(reply: chatState.lastReply!),
+              // Tension フェーズバナー
+              if (chatState.tensionPhase == 'friction' ||
+                  chatState.tensionPhase == 'reconciliation')
+                _TensionPhaseBanner(phase: chatState.tensionPhase!),
 
-          // 入力エリア or ペイウォールバナー
-          chatState.isLimitExceeded
-              ? _buildPaywallBanner(context)
-              : _buildInputArea(chatState),
-        ],
-      ),
+              // チャットメッセージ一覧
+              Expanded(
+                child: chatState.isLoading && chatState.messages.isEmpty
+                    ? const Center(child: CircularProgressIndicator())
+                    : ListView.builder(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.all(16),
+                        // 初回セッション（メッセージ1件以下）は週次サマリカードを先頭に追加
+                        itemCount: chatState.messages.length +
+                            (chatState.messages.length <= 1 ? 1 : 0),
+                        itemBuilder: (context, index) {
+                          // 最初のアイテムが週次サマリカード
+                          if (chatState.messages.length <= 1 && index == 0) {
+                            return const _WeeklySummaryCard();
+                          }
+                          final msgIndex = chatState.messages.length <= 1
+                              ? index - 1
+                              : index;
+                          final message = chatState.messages[msgIndex];
+                          return MessageBubble(message: message)
+                              .animate()
+                              .fadeIn(duration: 200.ms)
+                              .slideY(begin: 0.1, end: 0);
+                        },
+                      ),
+              ),
+
+              // AI返信パネル（生成結果表示）
+              if (chatState.lastReply != null)
+                ReplyPanel(reply: chatState.lastReply!),
+
+              // エラー時リトライバナー
+              if (chatState.error != null)
+                _RetryBanner(
+                  onRetry: () =>
+                      ref.read(chatProvider.notifier).retryLastMessage(),
+                ),
+
+              // 入力エリア or ペイウォールバナー
+              chatState.isLimitExceeded
+                  ? _buildPaywallBanner(context)
+                  : _buildInputArea(chatState),
+            ],
+          ),
+        ),
+
+        // 仲直り完了オーバーレイ（Positioned.fillはStackの直接の子に置く）
+        if (chatState.showRelationshipUp)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: _RelationshipUpContent(
+                  controller: _relationshipAnimCtrl),
+            ),
+          ),
+      ],
     );
   }
 
@@ -138,11 +193,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
       decoration: BoxDecoration(
         color: AppTheme.surface,
-        border: Border(top: BorderSide(color: AppTheme.primary.withOpacity(0.3))),
+        border:
+            Border(top: BorderSide(color: AppTheme.primary.withOpacity(0.3))),
       ),
       child: Column(
         children: [
-          // 지우のメッセージ
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -150,7 +205,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               const SizedBox(width: 10),
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.06),
                     borderRadius: const BorderRadius.only(
@@ -173,7 +229,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             style: FilledButton.styleFrom(
               minimumSize: const Size.fromHeight(52),
               backgroundColor: AppTheme.primary,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14)),
             ),
             child: const Text(
               '지우との会話を続ける — Pro にアップグレード',
@@ -216,6 +273,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   maxLines: 3,
                   minLines: 1,
                   enabled: !chatState.isGenerating,
+                  onChanged: (text) =>
+                      ref.read(chatProvider.notifier).onInputChanged(text),
                   decoration: InputDecoration(
                     hintText: '例：会いたかったよ、今日何してた？',
                     hintStyle: TextStyle(color: AppTheme.muted, fontSize: 13),
@@ -228,7 +287,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 onPressed: chatState.isGenerating ? null : _onGenerate,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primary,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
                 ),
@@ -257,11 +317,313 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 }
 
-// ────────────────────────────────────────────────
+// ════════════════════════════════════════════════
+// 週次サマリカード（初回セッション時に表示）
+// ════════════════════════════════════════════════
+class _WeeklySummaryCard extends ConsumerWidget {
+  const _WeeklySummaryCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final streakAsync = ref.watch(streakDataProvider);
+
+    return streakAsync.when(
+      loading: () => const SizedBox(height: 8),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (data) {
+        if (data.streak == 0 && data.weeklyVocab == 0) {
+          return const SizedBox.shrink();
+        }
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                AppTheme.primary.withOpacity(0.12),
+                AppTheme.primary.withOpacity(0.04),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppTheme.primary.withOpacity(0.2)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Text('📊', style: TextStyle(fontSize: 14)),
+                  const SizedBox(width: 6),
+                  Text(
+                    '今週の学習まとめ',
+                    style: TextStyle(
+                      color: AppTheme.primary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  _StatChip(
+                    emoji: data.streak >= 30
+                        ? '👑'
+                        : data.streak >= 7
+                            ? '🌟'
+                            : '🔥',
+                    label: '${data.streak}日連続',
+                    highlight: data.streak >= 7,
+                  ),
+                  const SizedBox(width: 10),
+                  if (data.weeklyVocab > 0)
+                    _StatChip(
+                      emoji: '📖',
+                      label: '+${data.weeklyVocab}表現',
+                      highlight: false,
+                    ),
+                  if (data.todayXp > 0) ...[
+                    const SizedBox(width: 10),
+                    _StatChip(
+                      emoji: '⚡',
+                      label: '+${data.todayXp} XP',
+                      highlight: true,
+                    ),
+                  ],
+                ],
+              ),
+              if (data.streak >= 3) ...[
+                const SizedBox(height: 10),
+                Text(
+                  _getMotivationMessage(data.streak),
+                  style: TextStyle(
+                    color: Colors.white54,
+                    fontSize: 11,
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        )
+            .animate()
+            .fadeIn(duration: 400.ms)
+            .slideY(begin: -0.1, end: 0, curve: Curves.easeOut);
+      },
+    );
+  }
+
+  String _getMotivationMessage(int streak) {
+    if (streak >= 100) return '👑 伝説のレベル！지우も感動してる';
+    if (streak >= 30) return '🌟 1ヶ月連続！本物の習慣になったね';
+    if (streak >= 7) return '🔥 1週間連続！지우との絆が深まってる';
+    return '${streak}日連続！いい調子！';
+  }
+}
+
+class _StatChip extends StatelessWidget {
+  const _StatChip({
+    required this.emoji,
+    required this.label,
+    required this.highlight,
+  });
+
+  final String emoji;
+  final String label;
+  final bool highlight;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: highlight
+            ? AppTheme.primary.withOpacity(0.15)
+            : Colors.white.withOpacity(0.07),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: highlight
+              ? AppTheme.primary.withOpacity(0.4)
+              : Colors.white12,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 13)),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: highlight ? AppTheme.primary : Colors.white70,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ════════════════════════════════════════════════
+// Tension フェーズバナー
+// ════════════════════════════════════════════════
+class _TensionPhaseBanner extends StatelessWidget {
+  const _TensionPhaseBanner({required this.phase});
+  final String phase;
+
+  @override
+  Widget build(BuildContext context) {
+    final isFriction = phase == 'friction';
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: (isFriction ? Colors.red : Colors.pink).withOpacity(0.12),
+      child: Row(
+        children: [
+          Text(
+            isFriction ? '😤' : '💕',
+            style: const TextStyle(fontSize: 16),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            isFriction
+                ? '지우がちょっと拗ねています... 優しい言葉をかけよう'
+                : '仲直りチャンス！감사하다고 전해봐요 💕',
+            style: TextStyle(
+              color: isFriction ? Colors.red[300] : Colors.pink[300],
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn(duration: 300.ms).slideY(begin: -0.3, end: 0);
+  }
+}
+
+// ════════════════════════════════════════════════
+// エラー時リトライバナー
+// ════════════════════════════════════════════════
+class _RetryBanner extends StatelessWidget {
+  const _RetryBanner({required this.onRetry});
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      color: Colors.red.withOpacity(0.08),
+      child: Row(
+        children: [
+          const Text('⚠️', style: TextStyle(fontSize: 14)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '生成に失敗しました',
+              style: TextStyle(color: Colors.red[300], fontSize: 12),
+            ),
+          ),
+          GestureDetector(
+            onTap: onRetry,
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.red.withOpacity(0.3)),
+              ),
+              child: Text(
+                '再試行',
+                style: TextStyle(
+                  color: Colors.red[300],
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn(duration: 250.ms);
+  }
+}
+
+// ════════════════════════════════════════════════
+// 仲直り完了オーバーレイ（関係値+1 アニメーション）
+// ════════════════════════════════════════════════
+class _RelationshipUpContent extends StatelessWidget {
+  const _RelationshipUpContent({required this.controller});
+  final AnimationController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+          animation: controller,
+          builder: (_, __) {
+            final opacity = controller.value < 0.1
+                ? controller.value / 0.1
+                : controller.value > 0.7
+                    ? (1 - controller.value) / 0.3
+                    : 1.0;
+            return Opacity(
+              opacity: opacity.clamp(0.0, 1.0),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '💕',
+                      style: TextStyle(
+                        fontSize: 64 + controller.value * 16,
+                      ),
+                    ).animate(controller: controller)
+                        .scale(
+                          begin: const Offset(0.5, 0.5),
+                          end: const Offset(1.1, 1.1),
+                          duration: 600.ms,
+                          curve: Curves.elasticOut,
+                        ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primary.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      child: const Text(
+                        '仲直り！ 関係値 +1 💖',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ).animate(controller: controller, delay: 300.ms)
+                        .fadeIn()
+                        .slideY(begin: 0.3, end: 0),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+  }
+}
+
+// ════════════════════════════════════════════════
 // 残り回数バッジ (AppBar 右端)
-// ────────────────────────────────────────────────
+// ════════════════════════════════════════════════
 class _TurnsRemainingBadge extends StatelessWidget {
-  const _TurnsRemainingBadge({required this.remaining, required this.onTap});
+  const _TurnsRemainingBadge(
+      {required this.remaining, required this.onTap});
   final int remaining;
   final VoidCallback onTap;
 
@@ -279,7 +641,9 @@ class _TurnsRemainingBadge extends StatelessWidget {
               : Colors.white.withOpacity(0.07),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isEmpty ? AppTheme.primary.withOpacity(0.5) : Colors.white12,
+            color: isEmpty
+                ? AppTheme.primary.withOpacity(0.5)
+                : Colors.white12,
           ),
         ),
         child: Text(
