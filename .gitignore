@@ -1,0 +1,44 @@
+# Flutter
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+*.g.dart
+*.freezed.dart
+*.mocks.dart
+
+# Env
+.env
+.env.local
+*.env
+
+# Supabase
+supabase/.env
+supabase/.branches/
+supabase/functions/.env
+
+# IDE
+.idea/
+.vscode/settings.json
+*.iml
+
+# iOS
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Runner/GeneratedPluginRegistrant.h
+
+# Android
+android/local.properties
+android/.gradle/
+android/app/google-services.json
+android/key.properties
+
+# macOS
+macos/Pods/
+macos/.symlinks/
+
+# Coverage
+coverage/
