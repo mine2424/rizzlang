@@ -163,9 +163,13 @@
   - SRS スケジュール（SM-2アルゴリズム）で `next_review` を計算して保存
   - _Requirements: 6.1, 6.2, 6.4_
 
-- [x] 7.2 (P) 語彙帳 UI スタブ
-  - `lib/features/vocabulary/screens/vocabulary_screen.dart` 作成済み（スタブ）
-  - ⚠️ 残作業: Supabase から語彙一覧取得・リスト表示・SRS復習UI の実装
+- [x] 7.2 (P) 語彙帳 UI 完全実装
+  - `lib/features/vocabulary/screens/vocabulary_screen.dart` — フル実装
+  - フィルタータブ（すべて / 今日 / 復習期限）
+  - 今日習得数・復習期限数バッジ
+  - SRS フリップカード復習セッション（BottomSheet）
+  - SM-2 評価ボタン（もう一度 / なんとか / わかった！）
+  - 復習完了後に Provider リフレッシュ
   - _Requirements: 6.3, 6.5_
 
 ---
@@ -178,10 +182,15 @@
   - マイルストーン（7・30・100日）到達時に特別アニメーションをトリガーするイベントを返す
   - _Requirements: 7.1, 7.2, 7.4_
 
-- [x] 8.2 (P) 進捗 UI の実装
-  - `lib/features/chat/widgets/streak_bar.dart` — ストリーク表示バー実装済み
-  - ⚠️ 残作業: マイルストーン達成時の紙吹雪アニメーション（flutter_animate）
-  - ⚠️ 残作業: ホーム画面の「今週 +{n}表現 / {n}日連続」週次サマリーカード
+- [x] 8.2 (P) 進捗 UI 完全実装
+  - `lib/features/chat/widgets/streak_bar.dart` — 実データ連動リライト
+  - Supabase から streak / turns_today / weekly_vocab を取得
+  - XP プログレスバー（今日のターン数 × 10）
+  - 今週の語彙獲得数表示
+  - ストリーク数に応じてアイコン変化（🔥→🌟→👑）
+  - マイルストーン達成ダイアログ（7/30/100日）+ flutter_animate
+  - スケルトンローディング実装
+  - `lib/features/chat/providers/streak_provider.dart` 新規作成
   - _Requirements: 7.3, 7.4, 7.5_
 
 ---
@@ -302,8 +311,8 @@
 | 4 | AIチャット生成 Edge Function | ✅ 完了（シナリオ連携込み） |
 | 5 | シナリオシステム（S1W1シード+選択+進捗） | ✅ 完了 |
 | 6 | 難易度エンジン（7日集計+自動更新Cron） | ✅ 完了 |
-| 7 | 語彙帳 | 🔶 自動保存ロジック✅ / UI実装残 |
-| 8 | ストリーク | 🔶 バックエンド✅ / マイルストーンUI残 |
+| 7 | 語彙帳（一覧/フィルター/SRS復習） | ✅ 完了 |
+| 8 | ストリーク（実データ連動+マイルストーン） | ✅ 完了 |
 | 9 | RevenueCat課金（ペイウォール込み） | ✅ 完了 |
 | 10 | FCM通知（デイリーリマインダー込み） | ✅ 完了 |
 | 11 | ホーム・設定スタブ | ✅ 完了 |
