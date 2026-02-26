@@ -18,7 +18,7 @@ class ChatScreen extends ConsumerStatefulWidget {
 
 class _ChatScreenState extends ConsumerState<ChatScreen> {
   final _inputController = TextEditingController();
-  final _scrollController = ScrollController();
+  final _scrollController = ScrollController(keepScrollOffset: true);
 
   @override
   void dispose() {

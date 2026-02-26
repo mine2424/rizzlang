@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { GoogleGenerativeAI } from 'https://esm.sh/@google/generative-ai@0.21.0'
+import { verifyAuth, checkRateLimit } from '../_shared/auth.ts'
 
 // ============================================================
 // 型定義
@@ -224,29 +225,30 @@ serve(async (req: Request) => {
   }
 
   try {
-    // ── 認証 ──
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'UNAUTHORIZED' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
+    // ── 初期化 ──
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const geminiKey = Deno.env.get('GEMINI_API_KEY')!
 
     const supabase = createClient(supabaseUrl, supabaseKey)
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    )
-
+    // ── 認証（共通ミドルウェア）──
+    const { user, error: authError } = await verifyAuth(req, supabase)
     if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'UNAUTHORIZED' }), {
-        status: 401,
+      const errRes = authError!
+      return new Response(await errRes.text(), {
+        status: errRes.status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // ── レート制限（共通ミドルウェア）──
+    const { allowed, error: rateLimitError } = await checkRateLimit(user.id, supabase)
+    if (!allowed) {
+      const errRes = rateLimitError!
+      return new Response(await errRes.text(), {
+        status: errRes.status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' },
       })
     }
 
