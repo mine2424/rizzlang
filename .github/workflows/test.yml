@@ -1,0 +1,130 @@
+name: Test
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ────────────────────────────────────────────────
+  # ユニット + ウィジェットテスト
+  # ────────────────────────────────────────────────
+  unit-widget:
+    name: Unit & Widget Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Flutter のセットアップ
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.x'
+          channel: stable
+          cache: true
+
+      - name: 依存関係インストール
+        run: flutter pub get
+
+      - name: ユニットテスト実行
+        run: flutter test test/unit/ --reporter=expanded
+
+      - name: ウィジェットテスト実行
+        run: flutter test test/widget/ --reporter=expanded
+
+  # ────────────────────────────────────────────────
+  # VRT ゴールデンテスト
+  # ────────────────────────────────────────────────
+  golden-vrt:
+    name: Golden (VRT) Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Flutter のセットアップ
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.x'
+          channel: stable
+          cache: true
+
+      - name: 依存関係インストール
+        run: flutter pub get
+
+      - name: ゴールデンテスト実行
+        run: flutter test test/golden/ --reporter=expanded
+
+      # テスト失敗時: 差分画像を artifacts に保存
+      - name: ゴールデン失敗ファイルを保存
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: golden-failures-${{ github.sha }}
+          path: |
+            test/goldens/failures/
+            **/*_masterimage.png
+            **/*_testimage.png
+            **/*_isolatedDiff.png
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # ────────────────────────────────────────────────
+  # 静的解析 (lint)
+  # ────────────────────────────────────────────────
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Flutter のセットアップ
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.x'
+          channel: stable
+          cache: true
+
+      - name: 依存関係インストール
+        run: flutter pub get
+
+      - name: 静的解析
+        run: flutter analyze --no-fatal-infos
+
+      - name: フォーマットチェック
+        run: dart format --output=none --set-exit-if-changed lib/ test/
+
+  # ────────────────────────────────────────────────
+  # ビルド確認（Android）
+  # ────────────────────────────────────────────────
+  build-android:
+    name: Build Check (Android)
+    runs-on: ubuntu-latest
+    needs: [unit-widget, analyze]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Java のセットアップ
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Flutter のセットアップ
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.x'
+          channel: stable
+          cache: true
+
+      - name: 依存関係インストール
+        run: flutter pub get
+
+      - name: Android ビルド（debug）
+        run: flutter build apk --debug
+          --dart-define=SUPABASE_URL=https://placeholder.supabase.co
+          --dart-define=SUPABASE_ANON_KEY=placeholder
+          --dart-define=RC_ANDROID_KEY=goog_placeholder

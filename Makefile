@@ -109,6 +109,19 @@ test-unit:
 test-widget:
 	flutter test test/widget/
 
+# VRT ゴールデンテスト（差分チェック）
+test-golden:
+	flutter test test/golden/
+
+# VRT ゴールデンファイル生成（初回 or UI 変更後に実行）
+test-golden-update:
+	flutter test test/golden/ --update-goldens
+	@echo "✅ ゴールデンファイルを更新しました。test/goldens/ の差分を目視確認してください。"
+
+# E2E テスト（デバイス接続必須）
+test-e2e:
+	flutter test integration_test/e2e_test.dart -d $(or $(DEVICE_ID),$(shell flutter devices | grep -m1 'mobile\|simulator\|emulator' | awk '{print $$1}'))
+
 test-coverage:
 	flutter test --coverage
 	genhtml coverage/lcov.info -o coverage/html
@@ -158,10 +171,13 @@ help:
 	@echo "  make run            Flutter 実行（シミュレータ）"
 	@echo "  make run-device     Flutter 実行（物理デバイス）"
 	@echo "  make local-ip       Mac の LAN IP 確認"
-	@echo "  make test           テスト実行（全件）"
-	@echo "  make test-unit      ユニットテストのみ"
-	@echo "  make test-widget    Widget テストのみ"
-	@echo "  make build-ios      iOS リリースビルド"
+	@echo "  make test                テスト実行（全件）"
+	@echo "  make test-unit           ユニットテストのみ"
+	@echo "  make test-widget         Widget テストのみ"
+	@echo "  make test-golden         VRT ゴールデン差分チェック"
+	@echo "  make test-golden-update  ゴールデンファイル生成・更新"
+	@echo "  make test-e2e            E2E テスト（デバイス接続必須）"
+	@echo "  make build-ios           iOS リリースビルド"
 	@echo "  make build-android  Android リリースビルド"
 	@echo "  make clean          キャッシュクリア"
 	@echo ""

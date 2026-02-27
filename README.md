@@ -212,6 +212,32 @@ make build-android SUPABASE_URL=https://xxx.supabase.co SUPABASE_ANON_KEY=eyJ...
 
 ---
 
+## 🧪 テスト
+
+```bash
+# ユニット + ウィジェットテスト（全て）
+make test
+# または
+flutter test
+
+# VRT ゴールデンファイル生成（初回・UI変更後）
+flutter test test/golden/ --update-goldens
+
+# E2E テスト（接続デバイス必須）
+flutter test integration_test/e2e_test.dart -d <device-id>
+```
+
+| 種別 | ファイル | 件数 |
+|------|---------|------|
+| Unit | `test/unit/` | 27件 |
+| Widget | `test/widget/` | 18件 |
+| Golden (VRT) | `test/golden/` | 23件・23パターン |
+| E2E | `integration_test/e2e_test.dart` | 8シナリオ・30件 |
+
+> テスト戦略の詳細は [docs/TESTING.md](docs/TESTING.md) を参照。
+
+---
+
 ## 📖 仕様書
 
 詳細な要件定義・設計書・タスクリストは `.kiro/specs/rizzlang-mvp/` を参照。
