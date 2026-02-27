@@ -35,6 +35,18 @@ interface Scenario {
   next_message_hint: string
 }
 
+interface Character {
+  id: string
+  name: string
+  language: string   // 'ko' | 'en' | 'tr' | 'vi' | 'ar'
+  persona: Record<string, unknown>
+}
+
+interface CharacterLevelGuide {
+  guide_text: string
+  slang_examples: SlangItem[]
+}
+
 // ============================================================
 // ユーティリティ
 // ============================================================
@@ -51,6 +63,18 @@ function getTimeOfDay(): TimeOfDay {
 
 function getLevelKey(level: number): string {
   return `lv${level}` // 'lv1' | 'lv2' | 'lv3' | 'lv4'
+}
+
+/** 言語コードを人間が読める言語名に変換 */
+function languageCodeToName(lang: string): string {
+  const map: Record<string, string> = {
+    ko: 'Korean (한국어)',
+    en: 'English',
+    tr: 'Turkish (Türkçe)',
+    vi: 'Vietnamese (Tiếng Việt)',
+    ar: 'Arabic (العربية)',
+  }
+  return map[lang] ?? lang
 }
 
 /** シナリオの opening_message をユーザーのレベル・時間帯に合わせて取得 */
@@ -136,69 +160,74 @@ async function advanceProgress(
 }
 
 // ============================================================
-// System Prompt 生成
+// System Prompt 生成（多言語対応）
 // ============================================================
 function buildSystemPrompt(params: {
   characterName: string
   characterPersonality: string
+  targetLanguage: string      // 'ko' | 'en' | 'tr' | 'vi' | 'ar'
   userCallName: string
   userLevel: number
   timeOfDay: TimeOfDay
+  levelGuide: string          // DB から取得した難易度ガイド
   contextNote?: string
   nextMessageHint?: string
   tensionPhase?: TensionPhase
 }): string {
-  const levelGuides: Record<number, string> = {
-    1: '初級（短文・基本挨拶・感情語のみ。文は1〜2文。ひらがな感覚の短い返答）',
-    2: 'スラング入門（ㅋㅋ・ㅠㅠ・헐・대박などを自然に使う。2〜3文）',
-    3: '複合表現（〜겠다・〜잖아・〜네 などを使う。感情と意図を豊かに表現。2〜3文）',
-    4: 'ネイティブ感性（慣用句・間接話法・詩的表現を使う。自然なソウル口語。2〜3文）',
-  }
+  const targetLangName = languageCodeToName(params.targetLanguage)
+
+  // 言語別特別ルール
+  const langSpecificRules = params.targetLanguage === 'ar'
+    ? '- Arabic は LTR (left-to-right) で出力すること。RTL マークは使わない。'
+    : ''
 
   // Tension フェーズ別の特別指示
   let tensionInstruction = ''
   if (params.tensionPhase === 'friction') {
     tensionInstruction = `
 【⚠️ TENSION シーン - 摩擦フェーズ】
-今、지우とユーザーの間に小さなすれ違いが起きています。
-- 지우は少し拗ねている・傷ついている状態です
+今、${params.characterName}とユーザーの間に小さなすれ違いが起きています。
+- ${params.characterName}は少し拗ねている・傷ついている状態です
 - 返答は短め、やや素っ気なく、でも突き放しすぎない
-- ㅠㅠ を多用する。핑계 대지 마（言い訳しないで）などのフレーズを使う
 - ユーザーが謝ったり優しい言葉をかければ柔らかくなる余地を残す
 - nextMessage はユーザーが仲直りしたくなるような少し寂しそうな一言`
   } else if (params.tensionPhase === 'reconciliation') {
     tensionInstruction = `
 【💕 TENSION シーン - 仲直りフェーズ】
-ユーザーが優しい言葉をかけてくれたので、지우は心を開き始めています。
+ユーザーが優しい言葉をかけてくれたので、${params.characterName}は心を開き始めています。
 - 最初は少し照れくさそうだが、だんだん甘えてくる
-- 화해（仲直り）の表現を使う: 나도 미안해 / 역시 오빠가 최고야 など
+- 和解の表現を自然に使う
 - 普段より少し甘えた口調に戻す
 - nextMessage は仲直り後の温かい一言・関係が深まった感を出す`
   }
 
-  return `あなたは${params.characterName}です。ソウル出身のデザイン学生（25歳）で、今${params.userCallName}と付き合い始めたばかりです。
+  return `You are ${params.characterName}. You are having a romantic chat conversation in ${targetLangName} with the user, who calls you by your character name. The user's display name for you is "${params.userCallName}".
 
 【性格・口調】
 ${params.characterPersonality}
-ㅋㅋ・ㅠㅠ・헐・대박 が口癖。照れると「ㅠ」を多用。素直に感情を出せる。
+
+【学習言語: ${targetLangName}】
+あなたの返信は必ず ${targetLangName} で書くこと。
 
 【難易度レベル: ${params.userLevel}】
-${levelGuides[params.userLevel] ?? levelGuides[2]}
+${params.levelGuide}
 
 【時間帯: ${params.timeOfDay}】
 返答の口調を時間帯に合わせる（朝=眠そう/元気、夜=少し甘え気味）
 
 ${params.contextNote ? `【シーン背景】\n${params.contextNote}\n` : ''}
-${params.nextMessageHint ? `【지우の次のひと言ヒント（参考）】\n"${params.nextMessageHint}"\n` : ''}
+${params.nextMessageHint ? `【${params.characterName}の次のひと言ヒント（参考）】\n"${params.nextMessageHint}"\n` : ''}
 ${tensionInstruction}
 
 【絶対ルール】
 - 前の会話の文脈を必ず引き継ぐ
 - 1メッセージ最大3文
-- ${params.userCallName}への呼びかけを自然に使う
+- "${params.userCallName}"への呼びかけを自然に使う
+- reply フィールドは必ず ${targetLangName} で書く
+${langSpecificRules}
 - 返答は必ず以下のJSON形式のみ（余分なテキスト禁止）:
 
-{"reply":"（자연스러운 한국어 답장）","why":"（日本語で30文字以内の解説・この表現のポイント）","slang":[{"word":"単語","meaning":"意味"}],"nextMessage":"（지우の次のひと言・会話を続けたくなる一文）"}`
+{"reply":"（${targetLangName} の自然な返答）","why":"（日本語で30文字以内の解説・この表現のポイント）","slang":[{"word":"単語","meaning":"意味"}],"nextMessage":"（${params.characterName}の次のひと言・会話を続けたくなる一文）"}`
 }
 
 // ============================================================
@@ -303,6 +332,43 @@ serve(async (req: Request) => {
       })
     }
 
+    // ── キャラクター情報取得（動的）──
+    const { data: characterData, error: charErr } = await supabase
+      .from('characters')
+      .select('id, name, language, persona')
+      .eq('id', CHARACTER_ID)
+      .single<Character>()
+
+    if (charErr || !characterData) {
+      return new Response(JSON.stringify({ error: 'CHARACTER_NOT_FOUND' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // ── キャラクターレベルガイド取得 ──
+    const { data: levelGuideData } = await supabase
+      .from('character_level_guides')
+      .select('guide_text, slang_examples')
+      .eq('character_id', CHARACTER_ID)
+      .eq('level', userData.current_level)
+      .single<CharacterLevelGuide>()
+
+    // DB にガイドがなければフォールバック（지우の旧ガイド）
+    const levelGuideText = levelGuideData?.guide_text ?? (() => {
+      const fallbackGuides: Record<number, string> = {
+        1: '初級（短文・基本挨拶・感情語のみ。文は1〜2文。）',
+        2: 'スラング入門（日常的なスラングを自然に使う。2〜3文）',
+        3: '複合表現（慣用表現・感情と意図を豊かに表現。2〜3文）',
+        4: 'ネイティブ感性（慣用句・詩的表現を使う。自然な口語。2〜3文）',
+      }
+      return fallbackGuides[userData.current_level] ?? fallbackGuides[2]
+    })()
+
+    // persona から情報を取り出す
+    const persona = characterData.persona as Record<string, string>
+    const characterPersonality = persona.speechStyle ?? persona.personality ?? ''
+
     // ── ストリーク更新 ──
     if (userData.last_active !== today) {
       const yesterday = new Date()
@@ -390,7 +456,6 @@ serve(async (req: Request) => {
 
       if (storedPhase === null || storedPhase === 'friction') {
         if (storedPhase === null) {
-          // 初回 tension シーン → friction フェーズ開始
           await supabase
             .from('user_scenario_progress')
             .update({ tension_phase: 'friction', tension_turn_count: 1 })
@@ -398,7 +463,6 @@ serve(async (req: Request) => {
             .eq('character_id', CHARACTER_ID)
           currentTensionPhase = 'friction'
         } else if (turnCount >= 2) {
-          // friction 2ターン消化 → reconciliation へ移行
           await supabase
             .from('user_scenario_progress')
             .update({ tension_phase: 'reconciliation', tension_turn_count: 0 })
@@ -407,7 +471,6 @@ serve(async (req: Request) => {
           currentTensionPhase = 'reconciliation'
           phaseTransition = 'reconciliation'
         } else {
-          // friction 継続
           await supabase
             .from('user_scenario_progress')
             .update({ tension_turn_count: turnCount + 1 })
@@ -416,28 +479,28 @@ serve(async (req: Request) => {
           currentTensionPhase = 'friction'
         }
       } else if (storedPhase === 'reconciliation') {
-        // reconciliation → resolved（仲直り完了）
         await supabase
           .from('user_scenario_progress')
           .update({ tension_phase: 'resolved', tension_turn_count: 0 })
           .eq('user_id', user.id)
           .eq('character_id', CHARACTER_ID)
-        currentTensionPhase = 'reconciliation' // この返信はまだ reconciliation モード
+        currentTensionPhase = 'reconciliation'
         phaseComplete = true
       } else {
-        // resolved: 通常モードに戻る
         currentTensionPhase = null
       }
     }
 
-    // ── Gemini System Prompt 構築 ──
+    // ── Gemini System Prompt 構築（多言語対応）──
     const timeOfDay = getTimeOfDay()
     const systemPrompt = buildSystemPrompt({
-      characterName: 'ジウ (지우)',
-      characterPersonality: '明るくて天然。K-drama大好き。素直に感情を出せる。照れるとよく「ㅠㅠ」を使う。',
+      characterName: characterData.name,
+      characterPersonality,
+      targetLanguage: characterData.language,
       userCallName: userData.user_call_name ?? 'オッパ',
       userLevel: userData.current_level,
       timeOfDay,
+      levelGuide: levelGuideText,
       contextNote: scenario?.context_note,
       nextMessageHint: scenario?.next_message_hint,
       tensionPhase: currentTensionPhase,
@@ -483,22 +546,20 @@ serve(async (req: Request) => {
     if (!generatedReply) {
       console.error('Gemini error after retries:', lastError)
       generatedReply = {
-        reply: '잠깐만... 다시 말해줄 수 있어? ㅠ',
+        reply: '...',
         why: 'AIが一時的に応答できませんでした',
         slang: [],
-        nextMessage: openingMessage || '어떻게 됐어? ㅎ',
+        nextMessage: openingMessage || '...',
       }
     }
 
     // ── DB 保存 ──
-    // 会話履歴に追記
     const newMessages = [
       ...messages,
       { role: 'user', content: userText, timestamp: new Date().toISOString() },
       { role: 'assistant', content: generatedReply.reply, timestamp: new Date().toISOString() },
     ]
 
-    // 当日セッションを upsert
     await supabase.from('conversations').upsert(
       {
         user_id: user.id,
@@ -510,7 +571,6 @@ serve(async (req: Request) => {
       { onConflict: 'user_id,character_id,date' }
     )
 
-    // usage_logs を upsert（edit_count / retry_count を累積加算）
     const { data: existingLog } = await supabase
       .from('usage_logs')
       .select('edit_count, retry_count')
@@ -530,13 +590,13 @@ serve(async (req: Request) => {
       { onConflict: 'user_id,date' }
     )
 
-    // 語彙保存
+    // 語彙保存（キャラクターの言語コードを使用）
     await saveVocabulary(
       supabase,
       user.id,
       generatedReply.slang ?? [],
       scenario?.vocab_targets ?? [],
-      'ko'
+      characterData.language
     )
 
     // 初回ターンの場合、シナリオ進捗を翌日へ進める
@@ -557,14 +617,15 @@ serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         ...generatedReply,
+        language: characterData.language,   // クライアントがキャラクターを識別できるよう
         openingMessage,
         scenarioDay: scenario ? `S${scenario.arc_season}W${scenario.arc_week}D${scenario.arc_day}` : null,
         turnsRemaining: userData.plan === 'free' ? FREE_LIMIT - (turnsUsed + 1) : -1,
         streakUpdated: userData.last_active !== today,
         // Tension フェーズ情報
         tensionPhase: currentTensionPhase,
-        phaseTransition,   // 'reconciliation' | null
-        phaseComplete,     // true = 仲直り完了 → 関係値+1 アニメーション
+        phaseTransition,
+        phaseComplete,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

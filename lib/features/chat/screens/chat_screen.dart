@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
+import '../../../core/providers/character_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../paywall/paywall_sheet.dart';
 import '../providers/chat_provider.dart';
@@ -62,6 +63,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   @override
   Widget build(BuildContext context) {
     final chatState = ref.watch(chatProvider);
+    final activeCharacter = ref.watch(activeCharacterProvider);
 
     // メッセージ追加時に末尾へスクロール
     ref.listen(chatProvider, (prev, next) {
@@ -96,13 +98,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('지우 (ジウ)',
-                        style:
-                            TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                    Text(
+                      activeCharacter?.name ?? '지우 (ジウ)',
+                      style: const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.bold),
+                    ),
                     Row(
                       children: [
-                        Text('🇰🇷 ソウル出身 · オンライン',
-                            style: TextStyle(fontSize: 11, color: AppTheme.muted)),
+                        Text(
+                          '${activeCharacter?.flagEmoji ?? '🇰🇷'} ${activeCharacter?.languageDisplayName ?? '韓国語'} · オンライン',
+                          style:
+                              TextStyle(fontSize: 11, color: AppTheme.muted),
+                        ),
                         if (chatState.scenarioDay != null) ...[
                           Text(
                             '  ·  ${chatState.scenarioDay}',

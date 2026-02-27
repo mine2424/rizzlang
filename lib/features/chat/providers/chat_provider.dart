@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/models/message_model.dart';
 import '../../../core/providers/auth_provider.dart';
+import '../../../core/providers/character_provider.dart';
 import '../../../core/services/ai_service.dart';
 
 /// copyWith で nullable フィールドを null クリアするためのセンチネルクラス
@@ -42,6 +43,9 @@ class ChatState {
   // シナリオ情報
   final String? scenarioDay;  // 例: "S1W1D3" (AppBar に表示)
 
+  // キャラクター情報
+  final String? characterId;  // アクティブキャラクターの UUID
+
   const ChatState({
     this.messages = const [],
     this.lastReply,
@@ -58,6 +62,7 @@ class ChatState {
     this.userLevel = 1,
     this.userCallName = 'オッパ',
     this.scenarioDay,
+    this.characterId,
   });
 
   ChatState copyWith({
@@ -77,6 +82,7 @@ class ChatState {
     int? userLevel,
     String? userCallName,
     String? scenarioDay,
+    String? characterId,
   }) {
     return ChatState(
       messages: messages ?? this.messages,
@@ -97,6 +103,7 @@ class ChatState {
       userLevel: userLevel ?? this.userLevel,
       userCallName: userCallName ?? this.userCallName,
       scenarioDay: scenarioDay ?? this.scenarioDay,
+      characterId: characterId ?? this.characterId,
     );
   }
 
@@ -106,11 +113,14 @@ class ChatState {
 class ChatNotifier extends StateNotifier<ChatState> {
   final AIService _aiService;
   final SupabaseClient _supabase;
+  final String? _characterId;
 
   // 直前の入力テキスト（編集検知用）
   String _lastSubmittedText = '';
 
-  ChatNotifier(this._aiService, this._supabase) : super(const ChatState()) {
+  ChatNotifier(this._aiService, this._supabase, {String? characterId})
+      : _characterId = characterId,
+        super(ChatState(characterId: characterId)) {
     _loadTodayConversation();
   }
 
@@ -120,7 +130,8 @@ class ChatNotifier extends StateNotifier<ChatState> {
     this._aiService,
     this._supabase,
     ChatState initialState,
-  ) : super(initialState);
+  ) : _characterId = initialState.characterId,
+        super(initialState);
 
   Future<void> _loadTodayConversation() async {
     state = state.copyWith(isLoading: true);
@@ -265,6 +276,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
         ),
         userLevel: state.userLevel,
         userCallName: state.userCallName,
+        characterId: _characterId ?? state.characterId,
         editCount: wasEdited ? 1 : 0,
         retryCount: isRetry ? 1 : 0,
       );
@@ -354,5 +366,7 @@ final chatProvider = StateNotifierProvider<ChatNotifier, ChatState>((ref) {
   // supabaseClientProvider 経由でテスト時のモック注入を可能にする
   final supabase = ref.watch(supabaseClientProvider);
   final aiService = ref.watch(aiServiceProvider);
-  return ChatNotifier(aiService, supabase);
+  // アクティブキャラクターの ID を渡す（切り替え後は画面遷移で再生成）
+  final activeCharacter = ref.watch(activeCharacterProvider);
+  return ChatNotifier(aiService, supabase, characterId: activeCharacter?.id);
 });

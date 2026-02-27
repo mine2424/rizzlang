@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/providers/auth_provider.dart';
+import '../../core/providers/character_provider.dart';
 import '../../core/services/fcm_service.dart';
 import '../../core/services/revenue_cat_service.dart';
 import '../../core/theme/app_theme.dart';
@@ -21,6 +22,7 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final notifEnabled = ref.watch(_notifEnabledProvider);
     final isPro = ref.watch(proStatusProvider).valueOrNull ?? false;
+    final activeCharacter = ref.watch(activeCharacterProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -63,8 +65,15 @@ class SettingsScreen extends ConsumerWidget {
           // ── 학습（학습）セクション ──
           _SectionHeader(label: '학습 設定'),
           _SettingsTile(
+            icon: Icons.language,
+            title: '学習言語を変更',
+            subtitle: activeCharacter?.languageDisplayName ?? '韓国語',
+            onTap: () => context.push('/language-select'),
+          ),
+          _SettingsDivider(),
+          _SettingsTile(
             icon: Icons.person_2_outlined,
-            title: '지우からの呼び方',
+            title: '${activeCharacter?.shortName ?? 'キャラクター'}からの呼び方',
             subtitle: 'オッパ / 자기야 / カスタム',
             onTap: () => _showCallNameDialog(context, ref),
           ),

@@ -14,13 +14,14 @@ class AIService {
 
   AIService(this._supabase);
 
-  /// ユーザーの日本語入力から韓国語返信・解説を生成
+  /// ユーザーの日本語入力からキャラクターの返信・解説を生成（多言語対応）
   Future<GeneratedReply> generateReply({
     required String userText,
     required String conversationId,
     required List<MessageModel> history,
     required int userLevel,
     required String userCallName,
+    String? characterId,
     int editCount = 0,
     int retryCount = 0,
   }) async {
@@ -32,6 +33,7 @@ class AIService {
         'history': history.map((m) => m.toJson()).toList(),
         'userLevel': userLevel,
         'userCallName': userCallName,
+        if (characterId != null) 'characterId': characterId,
         'editCount': editCount,
         'retryCount': retryCount,
       },

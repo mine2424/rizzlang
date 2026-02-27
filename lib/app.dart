@@ -8,6 +8,7 @@ import 'core/services/fcm_service.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/home/home_screen.dart';
 import 'features/chat/screens/chat_screen.dart';
+import 'features/language/screens/language_select_screen.dart';
 import 'features/vocabulary/screens/vocabulary_screen.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/auth/screens/onboarding_screen.dart';
@@ -55,6 +56,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/settings',
             builder: (_, __) => const SettingsScreen(),
+          ),
+          GoRoute(
+            path: '/language-select',
+            builder: (_, __) => const LanguageSelectScreen(),
           ),
         ],
       ),
