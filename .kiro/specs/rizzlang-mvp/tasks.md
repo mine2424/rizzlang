@@ -1,332 +1,188 @@
-# Implementation Tasks — RizzLang MVP
+# Implementation Tasks — RizzLang
 
 ## ステータス凡例
-- [x] 完了
-- [ ] 未着手
+- [x] 完了（コード実装済み）
+- [ ] 未着手 or Ryota手動作業待ち
 - (P) 他タスクと並列実行可能
 
 ---
 
-## タスク一覧
+## Phase A: MVP（韓国語単一言語）
+
+### 1. プロジェクト基盤 ✅
+- [x] 1.1 Flutter プロジェクト初期化・pubspec.yaml・テーマ
+- [x] 1.2 Supabase スキーマ定義（`20260226_init.sql`）
+- [x] 1.3 環境変数管理・Freezed モデル（User/Message/Scenario/Vocabulary）
+
+### 2. 認証・ユーザー管理 ✅
+- [x] 2.1 Google / Apple OAuth ログイン（`login_screen.dart` + `auth_provider.dart`）
+- [x] 2.2 初回ログイン時 DB トリガー（`20260226_user_trigger.sql`）
+- [x] 2.3 GoRouter ルート保護 + JWT 検証 Edge Function
+
+### 3. オンボーディング ✅
+- [x] 3.1 4ステップオンボーディング（Welcome → DemoChat → CallName → Complete）
+- [x] 3.2 呼称選択（オッパ / 자기야 / カスタム）→ `users.user_call_name` 保存
+- [x] 3.3 完了後 `/chat` 遷移・シナリオ Day1 開始
+
+### 4. AIチャット生成 ✅
+- [x] 4.1 `generate-reply` Edge Function（Gemini 1.5 Flash + System Prompt 動的構築）
+- [x] 4.2 使用量チェック（Free=3ターン/日）・`generate-demo-reply`（未認証用）
+- [x] 4.3 チャット UI（`chat_screen.dart` / `message_bubble.dart` / `reply_panel.dart`）
+- [x] 4.4 `edit_count` / `retry_count` トラッキング → Edge Function → `usage_logs`
+
+### 5. シナリオシステム ✅
+- [x] 5.1 Season 1 Week 1 シード（7シーン × 4難易度 × 4時間帯 = 112パターン）
+- [x] 5.2 今日のシナリオ選択・`opening_message` バリエーション取得
+- [x] 5.3 シナリオ自動進行（Day+1 → Week+1 → Season+1）
+- [x] 5.4 Tension 2フェーズ（friction → reconciliation → 関係値+1 アニメ）
+
+### 6. 難易度自動変動 ✅
+- [x] 6.1 `calcNextLevel()` + `difficulty-updater` Edge Function（毎週月曜 Cron）
+- [x] 6.2 `generate-reply` に `current_level` 注入・レベル別 System Prompt
+
+### 7. 語彙帳 ✅
+- [x] 7.1 `saveVocabulary()` — slang + vocab_targets を会話ごとに自動 upsert
+- [x] 7.2 語彙帳画面（フィルター / SRS フリップカード / SM-2 評価ボタン）
+
+### 8. ストリーク・進捗可視化 ✅
+- [x] 8.1 ストリーク更新ロジック + マイルストーン検知（7/30/100日）
+- [x] 8.2 `StreakBar`（実データ連動・XP プログレス・スケルトン）
+- [x] 8.3 `WeeklySummaryCard`（初回セッション時表示）+ マイルストーンダイアログ
+
+### 9. フリーミアム課金（RevenueCat）✅
+- [x] 9.1 RevenueCat 初期化（`revenue_cat_service.dart`）
+- [x] 9.2 ペイウォール BottomSheet（キャラメッセージ + 特典リスト + 購入/復元）
+- [x] 9.3 `revenuecat-webhook` Edge Function（INITIAL_PURCHASE/EXPIRATION 処理）
+
+### 10. FCM Push 通知 ✅
+- [x] 10.1 FCM トークン管理（取得・upsert・通知ON/OFF）
+- [x] 10.2 `fcm-scheduler` Edge Function（毎日 0:00 UTC = 9:00 JST Cron）
+
+### 11. 設定・ホーム画面 ✅
+- [x] 11.1 `HomeScreen`（BottomNavigationBar シェル）
+- [x] 11.2 `SettingsScreen`（通知トグル / 呼称変更 / 購入復元 / ログアウト）
+
+### 12. セキュリティ・パフォーマンス ✅
+- [x] 12.1 共通認証ミドルウェア（`_shared/auth.ts` — verifyAuth + checkRateLimit）
+- [x] 12.2 `CacheService`（SharedPreferences + 日次自動クリア）
+- [x] 12.3 DB インデックス（`20260226_indexes.sql`）
+
+### 13. テスト ✅
+- [x] 13.1 ユニットテスト（難易度エンジン / SM-2 SRS / ストリーク）
+- [x] 13.2 Widget テスト（MessageBubble / ReplyPanel / StreakBar）
+- [x] 13.3 VRT Golden テスト（23パターン）
+- [x] 13.4 E2E 統合テスト（8グループ 30ケース）
+- [x] 13.5 CI（`.github/workflows/test.yml` — analyze / golden / build）
+
+### 14. コード品質 ✅（2026-02-27）
+- [x] 14.1 Import パス修正（`fcm_service` / `revenue_cat_service`）
+- [x] 14.2 `onBackgroundMessage` 二重登録解消
+- [x] 14.3 `chatProvider` → `ref.watch(supabaseClientProvider)` に変更（テスト注入対応）
+- [x] 14.4 `ChatState.copyWith` — `tensionPhase` null クリアバグ修正（_Undefined センチネル）
+- [x] 14.5 未使用 9 パッケージ削除（dio / lottie / shimmer など）
+- [x] 14.6 `assets/images/` `assets/fonts/` ディレクトリ作成
+- [x] 14.7 タイポ修正（"地우" → "지우" 全ファイル）
 
 ---
 
-- [x] 1. プロジェクト基盤セットアップ
+## Phase B: 多言語対応（2026-02-27〜）
 
-- [x] 1.1 Flutter プロジェクト初期化
-  - `flutter create rizzlang --org com.rizzlang` で iOS / Android 対応プロジェクト作成
-  - `pubspec.yaml` に全依存関係追加（supabase_flutter, riverpod, go_router, google_sign_in, sign_in_with_apple, flutter_stripe, firebase_messaging, flutter_animate, freezed, json_serializable 等）
-  - Material 3 ダークテーマ + ピンクプライマリを `app_theme.dart` で定義
-  - GitHub リポジトリ作成 → `main` ブランチへの push 完了
-  - _Requirements: 10.1_
+### 15. DB スキーマ拡張 ✅
+- [x] 15.1 `users.active_character_id` カラム追加（`20260227_multilang.sql`）
+- [x] 15.2 `user_characters` テーブル（解放キャラクター管理 + RLS）
+- [x] 15.3 `character_level_guides` テーブル（言語別難易度ガイド + RLS）
+- [x] 15.4 `handle_new_user` トリガー更新（지우を自動解放 + `user_characters` 追加）
 
-- [x] 1.2 (P) Supabase プロジェクトセットアップとスキーマ定義
-  - `supabase/migrations/20260226_init.sql` に全テーブル DDL 作成済み
-  - `users`, `characters`, `conversations`, `scenario_templates`, `user_scenario_progress`, `vocabulary`, `usage_logs`, `fcm_tokens` テーブル定義
-  - 全テーブルに RLS 有効化 + `auth.uid() = user_id` ポリシー設定
-  - 複合ユニーク制約・インデックス設定済み
-  - ⚠️ 残作業: Supabase CLI で実際のプロジェクトにマイグレーション適用
-  - _Requirements: 1.5, 10.1, 10.2_
+### 16. キャラクターシード ✅
+- [x] 16.1 Emma（🇺🇸 English / American / 23F / NYU）— `characters_multilang.sql`
+- [x] 16.2 Elif（🇹🇷 Turkish / İstanbul / 23F）
+- [x] 16.3 Linh（🇻🇳 Vietnamese / Hà Nội / 24F）
+- [x] 16.4 Yasmin（🇸🇦 Arabic / Dubai / 25F / LTR）
+- [x] 16.5 各キャラクター level 1〜4 の `character_level_guides` シード（16行）
 
-- [x] 1.3 (P) 環境変数と型定義の整備
-  - `lib/core/services/env.dart` に環境変数ローダー（`--dart-define` 対応）作成
-  - `lib/core/models/` に Freezed モデル作成済み（UserModel, MessageModel, ScenarioModel, VocabularyModel）
-  - `lib/core/services/ai_service.dart` に Supabase Edge Functions クライアント実装済み
-  - _Requirements: 10.1_
+### 17. Edge Function 多言語対応 ✅
+- [x] 17.1 `generate-reply`: `characterId` パラメータ追加（デフォルト: 지우 UUID）
+- [x] 17.2 `characters` テーブルからキャラクター情報を動的取得
+- [x] 17.3 `character_level_guides` から言語別ガイドを DB 取得
+- [x] 17.4 `buildSystemPrompt` 汎用化（targetLanguage / Arabic LTR 指示）
+- [x] 17.5 レスポンスに `language` フィールド追加
 
----
+### 18. Flutter — CharacterModel ✅
+- [x] 18.1 `CharacterModel`（Freezed）+ `.freezed.dart` + `.g.dart`
+- [x] 18.2 Extension: `callName` / `flagEmoji` / `languageDisplayName` / `shortName`
 
-- [x] 2. 認証・ユーザー管理
+### 19. Flutter — Character Provider ✅
+- [x] 19.1 `activeCharacterProvider`（StateNotifierProvider）
+- [x] 19.2 `ActiveCharacterNotifier.switchCharacter()` — DB 更新 + シナリオ進捗作成
+- [x] 19.3 `allCharactersProvider` / `unlockedCharactersProvider`
 
-- [x] 2.1 Google / Apple OAuth ログイン実装
-  - `lib/features/auth/screens/login_screen.dart` 作成済み
-  - `lib/core/providers/auth_provider.dart` で Riverpod × Supabase Auth 連携
-  - Google Sign-In + Apple Sign-In ボタン実装済み
-  - GoRouter の `redirect` で未認証時にログイン画面へ自動遷移
-  - _Requirements: 1.1, 1.2_
+### 20. Flutter — 言語選択 UI ✅
+- [x] 20.1 `language_select_screen.dart` — キャラクターカード縦スクロール
+- [x] 20.2 Free ユーザー: 지우のみ選択可（他は 🔒 "Pro で解放"）
+- [x] 20.3 「決定する」→ switchCharacter() → `/chat` 遷移
+- [x] 20.4 `/language-select` ルートを `app.dart` に追加
 
-- [x] 2.2 初回ログイン時のユーザーレコード作成
-  - Supabase Auth の `auth.users` に対して `users` テーブルへの自動挿入トリガーを設定（Database Function）
-  - 初回ログイン時に `plan=free`, `streak=0`, `current_level=1` で初期化
-  - `user_scenario_progress` に地우キャラクターの初期進捗レコードを作成
-  - _Requirements: 1.3_
+### 21. Flutter — Chat / Settings 更新 ✅
+- [x] 21.1 `ChatScreen` AppBar — `activeCharacterProvider` から動的表示（名前・国旗・言語）
+- [x] 21.2 `SettingsScreen` — 「学習言語を変更」タイル追加（`/language-select` 遷移）
 
-- [x] 2.3 セッション自動更新とルート保護
-  - GoRouter の `redirect` で認証状態を監視してルート保護実装済み
-  - `supabase_flutter` のリフレッシュトークン自動更新が機能することを確認
-  - Edge Functions でのリクエストごとに JWT 検証実装済み
-  - _Requirements: 1.4, 10.2_
-
----
-
-- [x] 3. オンボーディングフロー
-
-- [x] 3.1 オンボーディング画面（デモチャット）
-  - `lib/features/auth/screens/onboarding_screen.dart` — 4ステップ完全実装済み
-  - Welcome → DemoChat（generate-demo-reply 呼び出し）→ CallName 選択 → Complete
-  - 2回目の返信後にサインアップ促進 BottomSheet 表示
-  - _Requirements: 2.1, 2.2, 2.3_
-
-- [x] 3.2 ユーザー呼称の選択
-  - オンボーディングの途中で「지우からどう呼ばれたいですか？」選択画面を表示
-  - 「オッパ / 자기야 / カスタム入力」の3択を提供
-  - 選択した呼称を `users.user_call_name` に保存
-  - _Requirements: 2.4_
-
-- [x] 3.3 オンボーディング完了後の初期シーン開始
-  - オンボーディング完了時に `user_scenario_progress` を season=1, week=1, day=1 に設定
-  - 完了直後にシナリオ Day 1 のチャット画面へ遷移
-  - _Requirements: 2.5_
+### 22. LP 更新 ✅
+- [x] 22.1 言語グリッドに 🇹🇷 🇻🇳 🇸🇦 を追加（全8言語）
+- [x] 22.2 🇺🇸 英語 "BETAで利用可" → "近日公開" に修正（韓国語のみ BETA）
 
 ---
 
-- [x] 4. AIチャット生成（コア機能）
+## Ryota 手動作業（ブロッカー）
 
-- [x] 4.1 Gemini API 統合と System Prompt 構築（Edge Function）
-  - `supabase/functions/generate-reply/index.ts` 実装済み
-  - キャラクター定義・難易度・ユーザー呼称・時間帯を組み合わせた System Prompt 動的生成
-  - 会話履歴（直近10往復）コンテキスト付与
-  - Gemini 1.5 Flash モデルへのリクエスト + JSON パース実装済み
-  - API キーは Edge Function の Secrets のみ
-  - _Requirements: 3.1, 3.5, 3.6_
+### 外部サービス設定（SETUP.md 参照）
+- [ ] **Supabase**: プロジェクト作成 → `supabase link` → `db push` → seed → Edge Functions deploy → Secrets 設定 → pg_cron 設定
+- [ ] **Firebase/FCM**: プロジェクト作成 → iOS/Android 登録 → APNs `.p8` → Service Account JSON
+- [ ] **RevenueCat**: プロジェクト → Entitlement `pro` → Offering `default` → Product `com.rizzlang.pro.monthly` → Webhook URL
+- [ ] **App Store Connect**: Bundle ID `com.rizzlang.app` → サブスク商品（¥1,480/月）
+- [ ] **Google Play**: アプリ作成 → サブスク商品
+- [ ] **X account**: @rizzlang（SMS 認証必要）
 
-- [x] 4.2 チャット生成 Edge Function の実装
-  - `generate-reply`: 認証チェック → 使用量チェック（無料3往復制限）→ AI生成 → DB保存 実装済み
-  - 制限超過時に `{error: "LIMIT_EXCEEDED"}` 返却
-  - 認証なしデモ用 `generate-demo-reply` 実装済み
-  - _Requirements: 3.2, 3.4, 8.1_
-
-- [x] 4.3 (P) チャット UI の実装
-  - `lib/features/chat/screens/chat_screen.dart` — メインチャット画面実装済み
-  - `lib/features/chat/widgets/message_bubble.dart` — LINE風吹き出し実装済み
-  - `lib/features/chat/widgets/reply_panel.dart` — 解説・スラングパネル実装済み
-  - `lib/features/chat/widgets/streak_bar.dart` — ストリーク表示バー実装済み
-  - `lib/features/chat/providers/chat_provider.dart` — Riverpod 状態管理実装済み
-  - _Requirements: 3.3, 3.7_
-
-- [x] 4.4 会話履歴の保存と読み込み（詳細実装）
-  - チャット送受信のたびに `conversations.messages` へのメッセージ追記確認
-  - `usage_logs.turns_used` +1 処理の確認
-  - `usage_logs.edit_count` / `retry_count` 記録（難易度計算用）✅
-  - `ChatNotifier.onInputChanged()` + `isRetry=true` でクライアント追跡 → Edge Function に送信
-  - 当日セッション既存時のチャット履歴継続表示確認
-  - _Requirements: 3.5, 4.5, 5.5_
+### ローカル作業
+- [ ] `make test-golden-update` → `git add test/goldens/` → commit（VRT baseline 生成）
+- [ ] `assets/fonts/` に NotoSansJP-Regular.ttf + NotoSansJP-Bold.ttf 配置
+- [ ] 実機ビルド・テスト（`make build-ios` / `make build-android`）
 
 ---
 
-- [x] 5. シナリオシステム
+## 残コード実装タスク
 
-- [x] 5.1 シナリオデータの投入
-  - Season 1 Week 1（7シーン × 4難易度 × 4時間帯）の `scenario_templates` データを SQL シードファイルとして作成
-  - `SCENARIO_DESIGN.md` のスクリプトを参照して各シーンに `scene_type`, `opening_message` JSON, `vocab_targets`, `next_message_hint` を設定
-  - Supabase CLI でシードデータを投入
-  - _Requirements: 4.2, 4.4_
+### Phase B 継続
+- [ ] **23. Season 1 Week 1 シード — 多言語版**
+  - 英語 / トルコ語 / ベトナム語 / アラビア語の `scenario_templates` シード
+  - 지우の season1_week1.sql を参考に4言語分作成（各7シーン × 4難易度 × 4時間帯）
 
-- [x] 5.2 今日のシナリオ選択ロジックの実装
-  - `getTodayScenario(userId, characterId)` 関数を実装（Edge Function 内ユーティリティ）
-  - `user_scenario_progress` からシーズン/ウィーク/デイを読み取る
-  - ユーザーのレベル + デバイス時刻から最適な `opening_message` バリエーションを選択
-  - 当日セッション存在チェックで二重進行を防止
-  - _Requirements: 4.1, 4.2, 4.4, 4.5_
+- [ ] **24. オンボーディング 多言語対応**
+  - Step 0 に「言語選択」ステップを追加（Welcome の前）
+  - 選択言語に応じてデモチャットのキャラクターを切り替え
+  - `generate-demo-reply` に `characterId` パラメータ追加
 
-- [x] 5.3 シナリオ進捗管理（自動進行）
-  - 1日1回のセッション開始時に `advanceProgress()` を呼び出し、翌日のシーンに進める
-  - `arc_day = 7` のシーンを完了したとき、`arc_week` を +1、`arc_day` を 1 にリセット
-  - `arc_week = 4` 完了後は `arc_season` を +1 して次のシーズンに進む
-  - _Requirements: 4.3_
+- [ ] **25. Paywall — 言語解放文言の更新**
+  - 現在: "지우との会話を続ける" → Pro で "全言語パートナーが解放される" 文言に変更
+  - 言語選択画面のロックカードから直接 Paywall を開けるよう実装
 
-- [x] 5.4 Tensionシーンの2フェーズ実装
-  - `scene_type = 'tension'` のシーンで、摩擦フェーズ → 仲直りフェーズの2段階フローを実装 ✅
-  - `supabase/migrations/20260226_tension_phase.sql`: `tension_phase` / `tension_turn_count` カラム追加
-  - `generate-reply/index.ts`: Tension フェーズ検知 → System Prompt に friction/reconciliation 指示を注入
-  - friction 2ターン後自動で reconciliation へ移行; 完了で `phaseComplete: true` を返す
-  - `chat_provider.dart`: `tensionPhase` / `showRelationshipUp` ステート管理
-  - `chat_screen.dart`: `_TensionPhaseBanner` + `_RelationshipUpContent` アニメーション
-  - 仲直り完了時に「関係値+1」オーバーレイ（flutter_animate）を表示 ✅
-  - _Requirements: 4.6_
+- [ ] **26. テスト更新**
+  - `test_helpers.dart` に `CharacterModel` フェイクデータを追加
+  - Golden テストに言語選択画面を追加（5キャラクター × Free/Pro 表示）
+  - E2E テストに「言語切り替え → チャット」フローを追加
+
+- [ ] **27. SETUP.md 更新**
+  - 多言語 migration / seed の手順を追記
+  - `characters_multilang.sql` の適用手順を明記
 
 ---
 
-- [x] 6. 難易度自動変動システム
+## コミット履歴
 
-- [x] 6.1 難易度計算エンジンの実装
-  - `calcNextLevel(currentLevel, metrics)` 関数を実装（`noEditRate > 0.8` → +1, `< 0.4` → -1）
-  - 7日間の `usage_logs` を集計して `DifficultyMetrics` を計算する関数を実装
-  - `supabase/functions/difficulty-updater/index.ts` を実装し Supabase Cron で7日ごとに自動実行
-  - _Requirements: 5.1, 5.2, 5.3_
-
-- [x] 6.2 AI リクエストへの難易度パラメータ組み込み
-  - `generate-reply` 呼び出し時に `users.current_level` を取得し System Prompt に渡す（実装済みのロジック確認）
-  - レベル別の口調ガイド（Lv1=短文、Lv2=スラング入門、Lv3=複合表現、Lv4=ネイティブ感性）が System Prompt に組み込まれていることを確認
-  - _Requirements: 5.4_
-
----
-
-- [ ] 7. 語彙帳・学習記録
-
-- [x] 7.1 語彙の自動保存
-  - AI 返信生成後、`slang` フィールドの内容を Edge Function から `vocabulary` テーブルに upsert する ✅
-  - `saveVocabulary()` 関数: slang + scenario vocab_targets を合算して upsert
-  - SRS スケジュール: `next_review = now + 1日`（SM-2 は Flutter側 ReviewNotifier で管理）
-  - _Requirements: 6.1, 6.2, 6.4_
-
-- [x] 7.2 (P) 語彙帳 UI 完全実装
-  - `lib/features/vocabulary/screens/vocabulary_screen.dart` — フル実装
-  - フィルタータブ（すべて / 今日 / 復習期限）
-  - 今日習得数・復習期限数バッジ
-  - SRS フリップカード復習セッション（BottomSheet）
-  - SM-2 評価ボタン（もう一度 / なんとか / わかった！）
-  - 復習完了後に Provider リフレッシュ
-  - _Requirements: 6.3, 6.5_
-
----
-
-- [ ] 8. ストリーク・進捗可視化
-
-- [x] 8.1 ストリーク管理ロジックの実装
-  - 当日初回チャット開始時に `updateStreak(userId)` を Supabase 経由で呼び出す処理を実装 ✅
-  - `last_active < today - 1` の場合、`streak` を 0 にリセットする条件分岐を実装 ✅
-  - マイルストーン（7・30・100日）到達時に特別アニメーションをトリガーするイベントを返す ✅
-  - `streak_provider.dart`: `newMilestone` フィールドでマイルストーン検知
-  - `streak_bar.dart`: `_MilestoneDialog` を `showDialog` でトリガー
-  - `chat_screen.dart`: `_WeeklySummaryCard` - 今週 +{n}表現 / {n}日連続 / +{n}XP ✅
-  - _Requirements: 7.1, 7.2, 7.4_
-
-- [x] 8.2 (P) 進捗 UI 完全実装
-  - `lib/features/chat/widgets/streak_bar.dart` — 実データ連動リライト
-  - Supabase から streak / turns_today / weekly_vocab を取得
-  - XP プログレスバー（今日のターン数 × 10）
-  - 今週の語彙獲得数表示
-  - ストリーク数に応じてアイコン変化（🔥→🌟→👑）
-  - マイルストーン達成ダイアログ（7/30/100日）+ flutter_animate
-  - スケルトンローディング実装
-  - `lib/features/chat/providers/streak_provider.dart` 新規作成
-  - _Requirements: 7.3, 7.4, 7.5_
-
----
-
-- [x] 9. フリーミアム課金（RevenueCat）
-
-- [x] 9.1 RevenueCat 連携セットアップ
-  - Stripe アカウントに Pro プラン（¥1,480/月）のサブスクリプション商品を作成
-  - `flutter_stripe` パッケージの初期化（iOS: `AppDelegate` 設定、Android: `build.gradle` 設定）
-  - Stripe Webhook のエンドポイント（`/functions/v1/stripe-webhook`）を Stripe Dashboard に登録
-  - Webhook Secret を Supabase Edge Function の Secrets に設定
-  - _Requirements: 8.3_
-
-- [x] 9.2 ペイウォール UI の実装
-  - `lib/features/paywall/paywall_sheet.dart` — BottomSheet 形式のペイウォール実装
-  - 지우のキャラクターメッセージ + 特典リスト + 価格表示 + 購入ボタン + 復元ボタン
-  - Chat 画面上限到達時に自動表示 + 入力エリアを差し替えバナーで置換
-  - _Requirements: 8.1, 8.2, 8.3_
-
-- [x] 9.3 RevenueCat Webhook ハンドラーの実装
-  - `supabase/functions/revenuecat-webhook/index.ts` を実装
-  - Authorization ヘッダーで署名検証
-  - INITIAL_PURCHASE / RENEWAL → `users.plan = 'pro'`
-  - EXPIRATION / BILLING_ISSUE → `users.plan = 'free'`
-  - SANDBOX イベントはスキップ（本番環境に影響させない）
-  - _Requirements: 8.4, 8.5, 8.6_
-
----
-
-- [x] 10. FCM Push 通知
-
-- [x] 10.1 FCM デバイストークン管理
-  - `firebase_messaging` パッケージの初期化（iOS: APNs 設定、Android: `google-services.json`）
-  - 初回起動時に FCM トークンを取得し `fcm_tokens` テーブルに保存する処理を実装
-  - 通知設定のオン/オフ切り替えを設定画面に実装
-  - _Requirements: 9.1, 9.2, 9.5_
-
-- [x] 10.2 デイリーリマインダー送信
-  - `supabase/functions/fcm-scheduler/index.ts` を実装（Supabase Cron、毎日 9:00 JST）
-  - 前日アクセスあり・当日未アクセスのユーザーを抽出
-  - FCM API で「지우からメッセージが届いています 🥺」通知を送信
-  - 通知タップ時に当日チャット画面へ遷移（`notification.click_action` 設定）
-  - 1日1回制限で送信済みフラグを管理
-  - _Requirements: 9.3, 9.4, 9.5_
-
----
-
-- [x] 11. 設定・ホーム画面スタブ
-
-- [x] 11.1 ホーム画面・設定画面スタブ
-  - `lib/features/home/home_screen.dart` — BottomNavigationBar 付きシェル実装済み
-  - `lib/features/settings/settings_screen.dart` — 設定画面スタブ実装済み
-  - ⚠️ 残作業: 設定画面への通知ON/OFF・呼称変更・Proアップグレードリンク実装
-
----
-
-- [x] 12. レート制限とセキュリティ強化
-
-- [x] 12.1 API レート制限の実装
-  - `supabase/functions/_shared/auth.ts` を新規作成（共通認証ミドルウェア + レート制限）
-  - `verifyAuth()`: Authorization: Bearer JWT 検証 → 未認証 401
-  - `checkRateLimit()`: usage_logs.updated_at を使い 1分10リクエスト超で 429
-  - `generate-reply/index.ts` の認証部分をこの共通関数に置き換え済み
-  - _Requirements: 10.2, 10.3_
-
-- [x] 12.2 パフォーマンス最適化
-  - `lib/core/services/cache_service.dart` 新規作成（shared_preferences でメッセージキャッシュ）
-  - `lib/features/chat/screens/chat_screen.dart` 更新（ScrollController keepScrollOffset: true）
-  - `supabase/migrations/20260226_indexes.sql` 新規作成（4つのパフォーマンス改善インデックス）
-  - _Requirements: 10.4, 10.5_
-
----
-
-- [x] 13. テスト実装
-
-- [x] 13.1 ユニットテスト（`flutter_test`）
-  - `lib/core/utils/difficulty_engine.dart` 実装（calcNextLevel 境界値ロジック）
-  - `test/unit/difficulty_engine_test.dart` — 8件テスト（昇格/降格/維持/境界値）
-  - `lib/core/utils/srs_calculator.dart` 実装（SM-2 スケジュール + EF更新）
-  - `test/unit/srs_schedule_test.dart` — 9件テスト（reviewCount別インターバル + EF更新）
-  - `test/unit/streak_logic_test.dart` — 10件テスト（checkMilestone + StreakData モデル）
-  - _Requirements: 5.2, 5.3, 6.4, 7.1, 7.2_
-
-- [x] 13.2 Widget テスト（`flutter_test`）
-  - `test/widget/message_bubble_test.dart` — 6件（ユーザー右寄せ/キャラ左寄せ+CircleAvatar）
-  - `test/widget/reply_panel_test.dart` — 6件（展開/折りたたみ/再展開/コピーボタン）
-  - `test/widget/streak_bar_test.dart` — 6件（loading/streak=0/streak=7+🌟/XP表示）
-  - _Requirements: 3.3, 3.7, 7.3_
-
-- [x] 13.3 統合テスト（`integration_test`）
-  - `integration_test/app_test.dart` 作成（IntegrationTestWidgetsFlutterBinding 使用）
-  - 3シナリオをコメントとして文書化（オンボーディング/ペイウォール/語彙帳）
-  - モック MaterialApp で基本起動テストを実装
-  - _Requirements: 3.1, 3.4, 4.3, 8.4_
-
----
-
-## 要件カバレッジ確認
-
-| 要件グループ | カバーするタスク |
-|------------|----------------|
-| 1 (認証) | 2.1, 2.2, 2.3 |
-| 2 (オンボーディング) | 3.1, 3.2, 3.3 |
-| 3 (AIチャット) | 4.1, 4.2, 4.3, 4.4 |
-| 4 (シナリオ) | 5.1, 5.2, 5.3, 5.4 |
-| 5 (難易度) | 6.1, 6.2 |
-| 6 (語彙帳) | 7.1, 7.2 |
-| 7 (ストリーク) | 8.1, 8.2 |
-| 8 (課金) | 9.1, 9.2, 9.3 |
-| 9 (通知) | 10.1, 10.2 |
-| 10 (セキュリティ) | 1.2, 2.3, 12.1, 12.2 |
-
-## 完了サマリー（2026-02-26 更新）
-
-| # | タスク | 状態 |
-|---|--------|------|
-| 1 | プロジェクト基盤 | ✅ 完了 |
-| 2 | 認証（Google/Apple）+ DBトリガー | ✅ 完了 |
-| 3 | オンボーディング（デモ+呼称+遷移） | ✅ 完了 |
-| 4 | AIチャット生成 Edge Function | ✅ 完了（シナリオ連携込み） |
-| 5 | シナリオシステム（S1W1シード+選択+進捗） | ✅ 完了 |
-| 6 | 難易度エンジン（7日集計+自動更新Cron） | ✅ 完了 |
-| 7 | 語彙帳（一覧/フィルター/SRS復習） | ✅ 完了 |
-| 8 | ストリーク（実データ連動+マイルストーン） | ✅ 完了 |
-| 9 | RevenueCat課金（ペイウォール込み） | ✅ 完了 |
-| 10 | FCM通知（デイリーリマインダー込み） | ✅ 完了 |
-| 11 | ホーム・設定スタブ | ✅ 完了 |
-| 12 | セキュリティ・最適化（共通認証MW + キャッシュ + DBインデックス） | ✅ 完了 |
-| 13 | テスト（ユニット/Widget/統合スタブ） | ✅ 完了 |
+| ハッシュ | 内容 |
+|---------|------|
+| `79dbd43` | feat: multi-language support (8 languages, 5 characters) ← **最新** |
+| `50ee7e4` | fix: static analysis + code quality |
+| `e034e61` | fix: resolve all TODO items + polish |
+| `093fa37` | test: E2E + VRT golden + CI |
+| `be4dc7d` | feat: remaining tasks (4.4/5.4/7.1/8.1) |
+| `0b40b64` | docs: SETUP.md |
