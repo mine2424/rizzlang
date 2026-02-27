@@ -6,6 +6,7 @@ import '../../../core/models/message_model.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/character_provider.dart';
 import '../../../core/services/ai_service.dart';
+import '../../vocabulary/providers/vocabulary_provider.dart';
 
 /// copyWith で nullable フィールドを null クリアするためのセンチネルクラス
 class _Undefined {

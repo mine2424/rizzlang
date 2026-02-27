@@ -1,17 +1,17 @@
 {
   "feature_name": "ai-pronunciation-guide",
   "created_at": "2026-02-27T17:00:00Z",
-  "updated_at": "2026-02-27T17:00:00Z",
+  "updated_at": "2026-02-27T17:39:00Z",
   "language": "ja",
-  "phase": "requirements",
+  "phase": "implementation",
   "priority": 6,
   "tech_stack": "flutter",
-  "status": "not_started",
+  "status": "implemented",
   "approvals": {
-    "requirements": { "generated": true, "approved": false },
-    "design": { "generated": true, "approved": false },
-    "tasks": { "generated": true, "approved": false }
+    "requirements": { "generated": true, "approved": true },
+    "design": { "generated": true, "approved": true },
+    "tasks": { "generated": true, "approved": true }
   },
-  "ready_for_implementation": false,
-  "notes": "2026-02-27: 仕様確定、未実装。メッセージのポップオーバーでローマ字読み/カタカナ読みを表示。サーバーコスト0（ルールベース変換でほぼ対応可能）。Arabic/Vietnamese が最も難しい。"
+  "ready_for_implementation": true,
+  "notes": "2026-02-27: 実装完了。KoreanRomanizer（RR方式 + カタカナ近似）、VietnameseToneGuide（6声調 + 日本語ガイド）、PronunciationService（5言語対応 + メモリキャッシュ）、PronunciationGuideSheet（BottomSheet UI）、MessageBubble（ロングタップ → 発音ガイド + TtsService 連携）。サーバーコスト0（ルールベース変換）。flutter_tts を追加 (pubspec.yaml)。"
 }

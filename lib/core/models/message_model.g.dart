@@ -55,6 +55,10 @@ _$GeneratedReplyImpl _$GeneratedReplyFromJson(Map<String, dynamic> json) =>
       phaseComplete: json['phaseComplete'] as bool? ?? false,
       turnsRemaining: json['turnsRemaining'] as int?,
       scenarioDay: json['scenarioDay'] as String?,
+      reviewedWords: (json['reviewedWords'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
     );
 
 Map<String, dynamic> _$GeneratedReplyToJson(_$GeneratedReplyImpl instance) =>
@@ -68,4 +72,5 @@ Map<String, dynamic> _$GeneratedReplyToJson(_$GeneratedReplyImpl instance) =>
       'phaseComplete': instance.phaseComplete,
       if (instance.turnsRemaining != null) 'turnsRemaining': instance.turnsRemaining,
       if (instance.scenarioDay != null) 'scenarioDay': instance.scenarioDay,
+      'reviewedWords': instance.reviewedWords,
     };

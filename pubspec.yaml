@@ -47,6 +47,9 @@ dependencies:
   collection: ^1.18.0
   url_launcher: ^6.3.0
 
+  # TTS（デバイス側音声読み上げ）
+  flutter_tts: ^4.0.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

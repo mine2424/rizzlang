@@ -9,6 +9,7 @@ import '../../core/services/fcm_service.dart';
 import '../../core/services/revenue_cat_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../paywall/paywall_sheet.dart';
+import 'relationship_memories_screen.dart'; // ignore: unused_import
 
 // ────────────────────────────────────────────────
 // 通知設定の状態管理
@@ -69,6 +70,20 @@ class SettingsScreen extends ConsumerWidget {
             title: '学習言語を変更',
             subtitle: activeCharacter?.languageDisplayName ?? '韓国語',
             onTap: () => context.push('/language-select'),
+          ),
+          _SettingsDivider(),
+          ListTile(
+            leading: const Icon(Icons.favorite_border, color: AppTheme.primary),
+            title: const Text(
+              '지우の記憶',
+              style: TextStyle(fontSize: 15, color: Colors.white87),
+            ),
+            subtitle: const Text(
+              '過去の会話で積み重ねた記憶',
+              style: TextStyle(color: Colors.white38, fontSize: 12),
+            ),
+            trailing: const Icon(Icons.chevron_right, color: Colors.white38),
+            onTap: () => context.push('/relationship-memories'),
           ),
           _SettingsDivider(),
           _SettingsTile(

@@ -129,6 +129,7 @@ class _$GeneratedReplyImpl implements _GeneratedReply {
     this.phaseComplete = false,
     this.turnsRemaining,
     this.scenarioDay,
+    this.reviewedWords = const [],
   });
 
   @override
@@ -149,6 +150,8 @@ class _$GeneratedReplyImpl implements _GeneratedReply {
   final int? turnsRemaining;
   @override
   final String? scenarioDay;
+  @override
+  final List<String> reviewedWords;
 
   @override
   bool operator ==(Object other) =>
@@ -166,7 +169,7 @@ class _$GeneratedReplyImpl implements _GeneratedReply {
       'GeneratedReply(reply: $reply, why: $why, slang: $slang, '
       'nextMessage: $nextMessage, tensionPhase: $tensionPhase, '
       'phaseTransition: $phaseTransition, phaseComplete: $phaseComplete, '
-      'scenarioDay: $scenarioDay)';
+      'scenarioDay: $scenarioDay, reviewedWords: $reviewedWords)';
 
   @override
   Map<String, dynamic> toJson() => _$GeneratedReplyToJson(this);
@@ -183,6 +186,7 @@ abstract class _GeneratedReply implements GeneratedReply {
     bool phaseComplete,
     int? turnsRemaining,
     String? scenarioDay,
+    List<String> reviewedWords,
   }) = _$GeneratedReplyImpl;
 
   @override
@@ -203,6 +207,8 @@ abstract class _GeneratedReply implements GeneratedReply {
   int? get turnsRemaining;
   @override
   String? get scenarioDay;
+  @override
+  List<String> get reviewedWords;
   @override
   Map<String, dynamic> toJson();
 }

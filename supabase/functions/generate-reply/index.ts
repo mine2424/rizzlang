@@ -11,6 +11,12 @@ interface SlangItem {
   meaning: string
 }
 
+interface RelationshipMemory {
+  summary: string
+  week_number: number
+  emotional_weight: number
+}
+
 interface GeneratedReply {
   reply: string
   why: string
@@ -18,6 +24,7 @@ interface GeneratedReply {
   nextMessage: string
   phaseTransition?: string   // 'reconciliation' | null
   phaseComplete?: boolean    // reconciliation 完了時 true
+  reviewedWords?: string[]   // 今日の復習語彙で実際に使った単語
 }
 
 type TimeOfDay = 'morning' | 'afternoon' | 'evening' | 'night'
@@ -173,7 +180,10 @@ function buildSystemPrompt(params: {
   contextNote?: string
   nextMessageHint?: string
   tensionPhase?: TensionPhase
+  memories?: RelationshipMemory[]
+  reviewWords?: Array<{ word: string; meaning: string; easiness_factor: number }>
 }): string {
+  const { memories = [], reviewWords = [] } = params
   const targetLangName = languageCodeToName(params.targetLanguage)
 
   // 言語別特別ルール
@@ -201,6 +211,16 @@ function buildSystemPrompt(params: {
 - nextMessage は仲直り後の温かい一言・関係が深まった感を出す`
   }
 
+  // メモリブロック
+  const memoryBlock = memories.length > 0
+    ? `\n## あなたの記憶（大切にしてください）\n${memories.map(m => `[第${m.week_number}週]: ${m.summary}`).join('\n')}\n\n記憶の使い方のルール:\n- 30%の確率でさりげなく過去の出来事に言及してください（毎回は不自然すぎます）\n- emotional_weight が 7以上の記憶（喧嘩・仲直り）を優先して言及してください\n- 「そういえばさ...」「先週のこと、まだ覚えてるよ」などの自然な形で会話に織り込んでください\n- 記憶への言及は返信の末尾に自然に追加してください\n`
+    : ''
+
+  // 弱点語彙ブロック
+  const weaknessBlock = reviewWords.length > 0
+    ? `\n## 今日の復習語彙（会話に自然に使ってください）\n${reviewWords.map(w => `- ${w.word}（意味: ${w.meaning}）`).join('\n')}\n\n使い方のルール:\n- 文脈に合う場合のみ使う（無理に全部使わなくてよい）\n- 使った語彙は必ず slang 配列に含めてユーザーに気づかせること\n- また、今日の復習語彙で実際に使った単語があれば reviewedWords 配列に含めてください\n`
+    : ''
+
   return `You are ${params.characterName}. You are having a romantic chat conversation in ${targetLangName} with the user, who calls you by your character name. The user's display name for you is "${params.userCallName}".
 
 【性格・口調】
@@ -218,7 +238,7 @@ ${params.levelGuide}
 ${params.contextNote ? `【シーン背景】\n${params.contextNote}\n` : ''}
 ${params.nextMessageHint ? `【${params.characterName}の次のひと言ヒント（参考）】\n"${params.nextMessageHint}"\n` : ''}
 ${tensionInstruction}
-
+${memoryBlock}${weaknessBlock}
 【絶対ルール】
 - 前の会話の文脈を必ず引き継ぐ
 - 1メッセージ最大3文
@@ -227,7 +247,7 @@ ${tensionInstruction}
 ${langSpecificRules}
 - 返答は必ず以下のJSON形式のみ（余分なテキスト禁止）:
 
-{"reply":"（${targetLangName} の自然な返答）","why":"（日本語で30文字以内の解説・この表現のポイント）","slang":[{"word":"単語","meaning":"意味"}],"nextMessage":"（${params.characterName}の次のひと言・会話を続けたくなる一文）"}`
+{"reply":"（${targetLangName} の自然な返答）","why":"（日本語で30文字以内の解説・この表現のポイント）","slang":[{"word":"単語","meaning":"意味"}],"nextMessage":"（${params.characterName}の次のひと言・会話を続けたくなる一文）","reviewedWords":[]}`
 }
 
 // ============================================================
@@ -438,6 +458,25 @@ serve(async (req: Request) => {
       userData.current_level
     )
 
+    // ── 直近2週分のメモリ取得 ──
+    const { data: memories } = await supabase
+      .from('relationship_memories')
+      .select('summary, week_number, emotional_weight')
+      .eq('user_id', user.id)
+      .eq('character_id', CHARACTER_ID)
+      .order('week_number', { ascending: false })
+      .limit(2)
+
+    // ── 今日の復習対象語彙を取得（最大3件） ──
+    const { data: reviewWords } = await supabase
+      .from('user_vocabulary')
+      .select('word, meaning, easiness_factor')
+      .eq('user_id', user.id)
+      .eq('character_id', CHARACTER_ID)
+      .lte('next_review_at', new Date().toISOString())
+      .order('easiness_factor', { ascending: true })
+      .limit(3)
+
     // ── Tension フェーズ管理 ──
     let currentTensionPhase: TensionPhase = null
     let phaseTransition: string | null = null
@@ -504,6 +543,8 @@ serve(async (req: Request) => {
       contextNote: scenario?.context_note,
       nextMessageHint: scenario?.next_message_hint,
       tensionPhase: currentTensionPhase,
+      memories: (memories ?? []) as RelationshipMemory[],
+      reviewWords: reviewWords ?? [],
     })
 
     // ── Gemini API 呼び出し（3回リトライ）──
