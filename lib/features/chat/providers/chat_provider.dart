@@ -26,6 +26,13 @@ class ChatState {
   final int editCount;   // このセッション内の編集回数
   final int retryCount;  // このセッション内のリトライ回数
 
+  // ユーザー設定（Supabase から取得）
+  final int userLevel;        // 1-4: AI難易度
+  final String userCallName;  // 지우からの呼び方
+
+  // シナリオ情報
+  final String? scenarioDay;  // 例: "S1W1D3" (AppBar に表示)
+
   const ChatState({
     this.messages = const [],
     this.lastReply,
@@ -39,6 +46,9 @@ class ChatState {
     this.showRelationshipUp = false,
     this.editCount = 0,
     this.retryCount = 0,
+    this.userLevel = 1,
+    this.userCallName = 'オッパ',
+    this.scenarioDay,
   });
 
   ChatState copyWith({
@@ -54,6 +64,9 @@ class ChatState {
     bool? showRelationshipUp,
     int? editCount,
     int? retryCount,
+    int? userLevel,
+    String? userCallName,
+    String? scenarioDay,
   }) {
     return ChatState(
       messages: messages ?? this.messages,
@@ -68,6 +81,9 @@ class ChatState {
       showRelationshipUp: showRelationshipUp ?? this.showRelationshipUp,
       editCount: editCount ?? this.editCount,
       retryCount: retryCount ?? this.retryCount,
+      userLevel: userLevel ?? this.userLevel,
+      userCallName: userCallName ?? this.userCallName,
+      scenarioDay: scenarioDay ?? this.scenarioDay,
     );
   }
 }
@@ -125,7 +141,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
 
         final userData = await _supabase
             .from('users')
-            .select('plan')
+            .select('plan, current_level, user_call_name')
             .eq('id', userId)
             .single();
         final isPro = userData['plan'] == 'pro';
@@ -136,6 +152,8 @@ class ChatNotifier extends StateNotifier<ChatState> {
           isLoading: false,
           turnsRemaining: remaining,
           isLimitExceeded: !isPro && remaining <= 0,
+          userLevel: (userData['current_level'] as int?) ?? 1,
+          userCallName: (userData['user_call_name'] as String?) ?? 'オッパ',
         );
       } else {
         await _initTodaySession(userId);
@@ -145,16 +163,34 @@ class ChatNotifier extends StateNotifier<ChatState> {
     }
   }
 
-  /// 当日初回セッション: 地우の opening メッセージを表示
+  /// 当日初回セッション: ユーザーデータ取得 + 地우の opening メッセージ表示
   Future<void> _initTodaySession(String userId) async {
     try {
+      // ユーザー設定を取得
+      final userData = await _supabase
+          .from('users')
+          .select('plan, current_level, user_call_name')
+          .eq('id', userId)
+          .maybeSingle();
+
+      final callName = (userData?['user_call_name'] as String?) ?? 'オッパ';
+      final level = (userData?['current_level'] as int?) ?? 1;
+      final isPro = userData?['plan'] == 'pro';
+
       final openingMsg = MessageModel(
         id: 'opening_${DateTime.now().millisecondsSinceEpoch}',
         role: MessageRole.character,
-        content: '오빠, 오늘도 연락해줘서 좋아 🥺',
+        content: '$callName, 오늘도 연락해줘서 좋아 🥺',
         createdAt: DateTime.now(),
       );
-      state = state.copyWith(messages: [openingMsg], isLoading: false);
+      state = state.copyWith(
+        messages: [openingMsg],
+        isLoading: false,
+        userLevel: level,
+        userCallName: callName,
+        turnsRemaining: isPro ? -1 : state.turnsRemaining,
+        isLimitExceeded: !isPro && state.turnsRemaining <= 0,
+      );
     } catch (e) {
       state = state.copyWith(isLoading: false);
     }
@@ -215,8 +251,8 @@ class ChatNotifier extends StateNotifier<ChatState> {
         history: state.messages.sublist(
           state.messages.length > 10 ? state.messages.length - 10 : 0,
         ),
-        userLevel: 1,         // TODO: users テーブルから取得
-        userCallName: 'オッパ', // TODO: users テーブルから取得
+        userLevel: state.userLevel,
+        userCallName: state.userCallName,
         editCount: wasEdited ? 1 : 0,
         retryCount: isRetry ? 1 : 0,
       );
@@ -258,6 +294,8 @@ class ChatNotifier extends StateNotifier<ChatState> {
         // Tension フェーズ
         tensionPhase: reply.tensionPhase,
         showRelationshipUp: reply.phaseComplete,
+        // シナリオ情報
+        scenarioDay: reply.scenarioDay ?? state.scenarioDay,
       );
     } on AIServiceException catch (e) {
       if (e.statusCode == 429) {

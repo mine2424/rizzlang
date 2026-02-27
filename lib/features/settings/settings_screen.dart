@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/providers/auth_provider.dart';
 import '../../core/services/fcm_service.dart';
@@ -80,12 +81,12 @@ class SettingsScreen extends ConsumerWidget {
           _SettingsTile(
             icon: Icons.privacy_tip_outlined,
             title: 'プライバシーポリシー',
-            onTap: () {}, // TODO: WebView または外部ブラウザ
+            onTap: () => _launchUrl('https://mine2424.github.io/rizzlang-landing/#privacy'),
           ),
           _SettingsTile(
             icon: Icons.description_outlined,
             title: '利用規約',
-            onTap: () {},
+            onTap: () => _launchUrl('https://mine2424.github.io/rizzlang-landing/#terms'),
           ),
           _SettingsDivider(),
 
@@ -156,6 +157,13 @@ class SettingsScreen extends ConsumerWidget {
       context: context,
       builder: (ctx) => _CallNameDialog(),
     );
+  }
+
+  Future<void> _launchUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 
   Future<void> _signOut(BuildContext context, WidgetRef ref) async {

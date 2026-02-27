@@ -99,8 +99,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                     const Text('지우 (ジウ)',
                         style:
                             TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-                    Text('🇰🇷 ソウル出身 · オンライン',
-                        style: TextStyle(fontSize: 11, color: AppTheme.muted)),
+                    Row(
+                      children: [
+                        Text('🇰🇷 ソウル出身 · オンライン',
+                            style: TextStyle(fontSize: 11, color: AppTheme.muted)),
+                        if (chatState.scenarioDay != null) ...[
+                          Text(
+                            '  ·  ${chatState.scenarioDay}',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: AppTheme.primary.withOpacity(0.7),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ],
                 ),
               ],

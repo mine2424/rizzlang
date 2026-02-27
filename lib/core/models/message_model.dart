@@ -41,6 +41,7 @@ class GeneratedReply with _$GeneratedReply {
     String? phaseTransition,             // 'reconciliation' への移行通知
     @Default(false) bool phaseComplete,  // 仲直り完了フラグ → 関係値+1アニメ
     int? turnsRemaining,                 // 残りターン数（-1 = Pro）
+    String? scenarioDay,                 // 例: "S1W1D3" シナリオ位置
   }) = _GeneratedReply;
 
   factory GeneratedReply.fromJson(Map<String, dynamic> json) =>
