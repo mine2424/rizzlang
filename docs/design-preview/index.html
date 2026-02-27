@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RizzLang — Design System Preview</title>
+<style>
+  /* ── Design Tokens ─────────────────────────── */
+  :root {
+    --bg:           #09090F;
+    --surface:      #13131F;
+    --surface-2:    #1C1C2E;
+    --surface-3:    #252540;
+    --border:       rgba(255,255,255,0.07);
+    --border-glow:  rgba(255,78,139,0.25);
+
+    --primary:      #FF4E8B;
+    --primary-dark: #C73468;
+    --primary-glow: rgba(255,78,139,0.12);
+    --primary-grad: linear-gradient(135deg, #FF4E8B, #C73468);
+
+    --tension:      #FF6B6B;
+    --tension-bg:   rgba(255,107,107,0.08);
+    --success:      #4ECDC4;
+    --gold:         #FFD166;
+
+    --text-1: rgba(255,255,255,0.95);
+    --text-2: rgba(255,255,255,0.65);
+    --text-3: rgba(255,255,255,0.38);
+
+    --radius-sm: 8px;
+    --radius:    16px;
+    --radius-lg: 24px;
+    --radius-xl: 32px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+    background: #050508;
+    color: var(--text-1);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+    gap: 48px;
+  }
+
+  /* ── Page header ───── */
+  .page-header {
+    text-align: center;
+  }
+  .page-header h1 {
+    font-size: 28px;
+    font-weight: 800;
+    background: var(--primary-grad);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.5px;
+  }
+  .page-header p {
+    color: var(--text-3);
+    font-size: 13px;
+    margin-top: 6px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  /* ── Section label ───── */
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-3);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  /* ── Phone frame ───── */
+  .phone-row {
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-start;
+  }
+
+  .phone-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .phone-label {
+    font-size: 11px;
+    color: var(--text-3);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  .phone {
+    width: 320px;
+    height: 620px;
+    background: var(--bg);
+    border-radius: 44px;
+    border: 1.5px solid rgba(255,255,255,0.1);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    box-shadow:
+      0 0 0 4px rgba(0,0,0,0.6),
+      0 40px 80px rgba(0,0,0,0.6),
+      inset 0 1px 0 rgba(255,255,255,0.08);
+  }
+
+  /* ── App Bar ───── */
+  .app-bar {
+    background: var(--surface);
+    padding: 52px 20px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .app-bar .avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--surface-2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    border: 1.5px solid var(--border-glow);
+  }
+  .app-bar .info { flex: 1; }
+  .app-bar .name {
+    font-size: 15px; font-weight: 700;
+    line-height: 1.2;
+  }
+  .app-bar .status {
+    font-size: 11px; color: var(--success);
+    display: flex; align-items: center; gap: 4px;
+  }
+  .app-bar .status::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--success);
+    animation: pulse-green 2s infinite;
+  }
+  @keyframes pulse-green {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+  .app-bar .streak {
+    display: flex; align-items: center; gap: 4px;
+    background: var(--surface-2);
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px; font-weight: 700;
+    color: var(--gold);
+  }
+
+  /* ── Chat area ───── */
+  .chat-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 16px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    scrollbar-width: none;
+  }
+  .chat-area::-webkit-scrollbar { display: none; }
+
+  /* ── Date divider ───── */
+  .date-divider {
+    display: flex; align-items: center; gap: 8px;
+    margin: 4px 0;
+  }
+  .date-divider::before, .date-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+  .date-divider span {
+    font-size: 10px;
+    color: var(--text-3);
+    letter-spacing: 0.5px;
+  }
+
+  /* ── Message bubble ───── */
+  .msg-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    animation: bubble-in 0.3s ease both;
+  }
+  @keyframes bubble-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .msg-row.user { justify-content: flex-end; }
+  .msg-row.char { justify-content: flex-start; }
+
+  .char-avatar {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--surface-2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+  }
+
+  .bubble {
+    max-width: 240px;
+    padding: 11px 14px;
+    line-height: 1.55;
+    font-size: 14.5px;
+    position: relative;
+  }
+
+  .bubble.char-bubble {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 18px 18px 18px 4px;
+    color: var(--text-1);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+  }
+
+  .bubble.user-bubble {
+    background: var(--primary-grad);
+    border-radius: 18px 18px 4px 18px;
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(255,78,139,0.3);
+  }
+
+  .bubble .ts {
+    font-size: 10px;
+    color: var(--text-3);
+    margin-top: 4px;
+    display: block;
+  }
+  .bubble.user-bubble .ts { color: rgba(255,255,255,0.5); text-align: right; }
+
+  /* ── Typing indicator ───── */
+  .typing {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+  }
+  .typing-dots {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 18px 18px 18px 4px;
+    padding: 12px 16px;
+    display: flex;
+    gap: 5px;
+    align-items: center;
+  }
+  .typing-dots span {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--primary);
+    animation: dot-bounce 1.2s infinite;
+  }
+  .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes dot-bounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-5px); opacity: 1; }
+  }
+
+  /* ── Reply Panel ───── */
+  .reply-panel {
+    flex-shrink: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+  }
+
+  .why-strip {
+    padding: 10px 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+    background: var(--primary-glow);
+  }
+  .why-label {
+    font-size: 10px; font-weight: 700;
+    color: var(--primary);
+    letter-spacing: 0.5px;
+    padding: 2px 6px;
+    border: 1px solid rgba(255,78,139,0.4);
+    border-radius: 4px;
+    white-space: nowrap;
+    margin-top: 1px;
+  }
+  .why-text {
+    font-size: 12px;
+    color: var(--text-2);
+    line-height: 1.5;
+    flex: 1;
+  }
+  .explain-btn {
+    font-size: 10px;
+    color: var(--primary);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 0;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+
+  .slang-row {
+    padding: 8px 16px;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--border);
+  }
+  .slang-badge {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text-2);
+  }
+  .slang-badge strong {
+    color: var(--gold);
+    font-weight: 700;
+  }
+
+  /* ── Input area ───── */
+  .input-area {
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .mode-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .input-field {
+    flex: 1;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    padding: 8px 14px;
+    font-size: 13.5px;
+    color: var(--text-2);
+    display: flex;
+    align-items: center;
+  }
+  .send-btn {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--primary-grad);
+    border: none;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff;
+    font-size: 15px;
+    cursor: pointer;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(255,78,139,0.4);
+  }
+
+  /* ═══════════════════════════════════════════
+     SCREEN 2 — Writing Check
+  ═══════════════════════════════════════════ */
+  .wc-panel {
+    flex-shrink: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .wc-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .wc-title {
+    font-size: 12px; font-weight: 700;
+    color: var(--text-2);
+    letter-spacing: 0.5px;
+  }
+
+  /* Score ring */
+  .score-ring {
+    position: relative;
+    width: 52px; height: 52px;
+  }
+  .score-ring svg {
+    transform: rotate(-90deg);
+    width: 52px; height: 52px;
+  }
+  .score-ring .ring-bg {
+    fill: none;
+    stroke: var(--surface-3);
+    stroke-width: 5;
+  }
+  .score-ring .ring-fill {
+    fill: none;
+    stroke: #4ECDC4;
+    stroke-width: 5;
+    stroke-linecap: round;
+    stroke-dasharray: 138;
+    stroke-dashoffset: 28; /* 80/100 */
+    transition: stroke-dashoffset 1s ease;
+  }
+  .score-ring .score-text {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 13px; font-weight: 800;
+    color: #4ECDC4;
+  }
+
+  .wc-corrected {
+    background: rgba(78,205,196,0.06);
+    border: 1px solid rgba(78,205,196,0.2);
+    border-radius: var(--radius-sm);
+    padding: 9px 12px;
+    font-size: 14px;
+    color: var(--text-1);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .wc-corrected .check { font-size: 14px; }
+
+  .wc-error {
+    background: rgba(255,107,107,0.06);
+    border: 1px solid rgba(255,107,107,0.2);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .wc-error .warn { font-size: 12px; color: var(--tension); }
+  .wc-error-content { flex: 1; }
+  .wc-error .change {
+    font-size: 12.5px;
+    color: var(--text-2);
+  }
+  .wc-error .change del { color: var(--tension); text-decoration: line-through; }
+  .wc-error .change ins { color: var(--success); text-decoration: none; }
+  .wc-error .reason {
+    font-size: 11px;
+    color: var(--text-3);
+    margin-top: 2px;
+  }
+
+  .wc-praise {
+    font-size: 12px;
+    color: #4ECDC4;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  /* ═══════════════════════════════════════════
+     SCREEN 3 — Language Select
+  ═══════════════════════════════════════════ */
+  .lang-header {
+    background: var(--surface);
+    padding: 52px 20px 16px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .lang-header h2 {
+    font-size: 22px; font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+  .lang-header p {
+    font-size: 13px;
+    color: var(--text-2);
+    margin-top: 4px;
+  }
+
+  .char-cards {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    scrollbar-width: none;
+  }
+
+  .char-card {
+    background: var(--surface-2);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .char-card.selected {
+    border-color: var(--primary);
+    background: var(--primary-glow);
+    box-shadow: 0 0 0 1px rgba(255,78,139,0.15);
+  }
+  .char-card.locked {
+    opacity: 0.5;
+  }
+  .char-flag {
+    font-size: 32px;
+    width: 48px; height: 48px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--surface-3);
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .char-info { flex: 1; }
+  .char-name {
+    font-size: 15px; font-weight: 700;
+    line-height: 1.2;
+  }
+  .char-lang {
+    font-size: 12px;
+    color: var(--primary);
+    font-weight: 600;
+    margin-top: 2px;
+  }
+  .char-desc {
+    font-size: 11.5px;
+    color: var(--text-3);
+    margin-top: 3px;
+    line-height: 1.4;
+  }
+  .char-badge {
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    background: var(--surface-3);
+    color: var(--text-3);
+    border: 1px solid var(--border);
+  }
+  .char-badge.active {
+    background: rgba(255,78,139,0.15);
+    color: var(--primary);
+    border-color: rgba(255,78,139,0.3);
+  }
+
+  .lang-footer {
+    flex-shrink: 0;
+    padding: 12px 16px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+  }
+  .cta-btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: var(--radius);
+    background: var(--primary-grad);
+    border: none;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.3px;
+    box-shadow: 0 6px 20px rgba(255,78,139,0.35);
+  }
+
+  /* ═══════════════════════════════════════════
+     SCREEN 4 — Vocabulary / Streak
+  ═══════════════════════════════════════════ */
+  .streak-bar {
+    flex-shrink: 0;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 16px;
+  }
+  .streak-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .streak-days {
+    display: flex;
+    gap: 6px;
+  }
+  .streak-day {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700;
+    background: var(--surface-2);
+    color: var(--text-3);
+    border: 1px solid var(--border);
+  }
+  .streak-day.done {
+    background: rgba(255,78,139,0.15);
+    color: var(--primary);
+    border-color: rgba(255,78,139,0.3);
+  }
+  .streak-day.today {
+    background: var(--primary-grad);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 3px 10px rgba(255,78,139,0.4);
+  }
+  .xp-bar-wrap {
+    background: var(--surface-2);
+    border-radius: 6px;
+    height: 6px;
+    overflow: hidden;
+  }
+  .xp-bar {
+    height: 100%;
+    width: 65%;
+    background: var(--primary-grad);
+    border-radius: 6px;
+  }
+  .xp-label {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 5px;
+  }
+  .xp-label span {
+    font-size: 10px;
+    color: var(--text-3);
+  }
+  .xp-label strong { color: var(--primary); }
+
+  .vocab-tabs {
+    flex-shrink: 0;
+    display: flex;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 16px;
+  }
+  .vocab-tab {
+    flex: 1;
+    padding: 11px 0;
+    font-size: 12px; font-weight: 600;
+    color: var(--text-3);
+    text-align: center;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+  }
+  .vocab-tab.active {
+    color: var(--primary);
+    border-color: var(--primary);
+  }
+
+  .vocab-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    scrollbar-width: none;
+  }
+
+  .vocab-card {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 11px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .vocab-front {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-1);
+    flex: 1;
+  }
+  .vocab-back {
+    font-size: 12px;
+    color: var(--text-3);
+    flex: 1;
+  }
+  .srs-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+  }
+  .srs-new  { background: var(--primary); }
+  .srs-soon { background: var(--gold); }
+  .srs-ok   { background: var(--success); }
+
+  /* ── Paywall preview ───── */
+  .paywall-overlay {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding-top: 12px;
+    position: relative;
+  }
+  .paywall-sheet {
+    background: var(--surface);
+    border-radius: 28px 28px 0 0;
+    border-top: 1px solid var(--border);
+    padding: 8px 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .paywall-handle {
+    width: 36px; height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 8px auto 4px;
+  }
+  .paywall-char-msg {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px;
+  }
+  .paywall-avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--surface-3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    border: 1.5px solid var(--border-glow);
+    flex-shrink: 0;
+  }
+  .paywall-quote {
+    font-size: 13px;
+    color: var(--text-2);
+    line-height: 1.5;
+  }
+  .paywall-quote strong { color: var(--text-1); }
+  .paywall-title {
+    font-size: 19px; font-weight: 800;
+    text-align: center;
+    letter-spacing: -0.3px;
+  }
+  .paywall-title span {
+    background: var(--primary-grad);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .benefits {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .benefit-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12.5px;
+  }
+  .benefit-icon {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: var(--surface-2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .benefit-title { color: var(--text-1); font-weight: 600; }
+  .benefit-desc  { color: var(--text-3); font-size: 11px; }
+  .paywall-price {
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-3);
+    margin-top: -4px;
+  }
+  .paywall-price strong { color: var(--text-1); font-size: 14px; }
+
+  /* ── Color swatch ───── */
+  .design-section {
+    width: 100%;
+    max-width: 720px;
+  }
+  .swatches {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .swatch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .swatch-dot {
+    width: 48px; height: 48px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .swatch-name {
+    font-size: 10px;
+    color: var(--text-3);
+    text-align: center;
+    letter-spacing: 0.3px;
+  }
+  .swatch-hex {
+    font-size: 9px;
+    color: var(--text-3);
+    font-family: monospace;
+  }
+
+  /* ── Divider ───── */
+  .divider {
+    width: 100%;
+    max-width: 720px;
+    height: 1px;
+    background: var(--border);
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="page-header">
+  <h1>RizzLang Design System</h1>
+  <p>UI/UX Design Preview — February 2026</p>
+</div>
+
+<!-- Color System -->
+<div class="design-section">
+  <div class="section-label">カラーパレット</div>
+  <div class="swatches">
+    <div class="swatch">
+      <div class="swatch-dot" style="background:#09090F;"></div>
+      <div class="swatch-name">Background</div>
+      <div class="swatch-hex">#09090F</div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-dot" style="background:#13131F;"></div>
+      <div class="swatch-name">Surface</div>
+      <div class="swatch-hex">#13131F</div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-dot" style="background:#1C1C2E;"></div>
+      <div class="swatch-name">Surface 2</div>
+      <div class="swatch-hex">#1C1C2E</div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-dot" style="background:linear-gradient(135deg,#FF4E8B,#C73468);"></div>
+      <div class="swatch-name">Primary</div>
+      <div class="swatch-hex">#FF4E8B</div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-dot" style="background:#FF6B6B;"></div>
+      <div class="swatch-name">Tension</div>
+      <div class="swatch-hex">#FF6B6B</div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-dot" style="background:#4ECDC4;"></div>
+      <div class="swatch-name">Success</div>
+      <div class="swatch-hex">#4ECDC4</div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-dot" style="background:#FFD166;"></div>
+      <div class="swatch-name">Gold</div>
+      <div class="swatch-hex">#FFD166</div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- Phone Row -->
+<div class="design-section">
+  <div class="section-label">主要スクリーン</div>
+</div>
+
+<div class="phone-row">
+
+  <!-- SCREEN 1: Chat -->
+  <div class="phone-wrap">
+    <div class="phone-label">Chat Screen</div>
+    <div class="phone">
+      <div class="app-bar">
+        <div class="avatar">🇰🇷</div>
+        <div class="info">
+          <div class="name">지우 (ジウ)</div>
+          <div class="status">オンライン</div>
+        </div>
+        <div class="streak">🔥 12</div>
+      </div>
+      <div class="chat-area">
+        <div class="date-divider"><span>今日</span></div>
+        <div class="msg-row char">
+          <div class="char-avatar">🌸</div>
+          <div>
+            <div class="bubble char-bubble">
+              오빠, 오늘 뭐 했어? 🥺<br>나 보고 싶었어~
+              <span class="ts">21:04</span>
+            </div>
+          </div>
+        </div>
+        <div class="msg-row user">
+          <div class="bubble user-bubble">
+            나도 보고 싶었어요
+            <span class="ts">21:05</span>
+          </div>
+        </div>
+        <div class="msg-row char">
+          <div class="char-avatar">🌸</div>
+          <div class="bubble char-bubble">
+            진짜? 너무 좋아! 🤍<br>오늘 뭐 먹었어?
+            <span class="ts">21:05</span>
+          </div>
+        </div>
+        <div class="typing">
+          <div class="char-avatar" style="width:28px;height:28px;font-size:14px;">🌸</div>
+          <div class="typing-dots">
+            <span></span><span></span><span></span>
+          </div>
+        </div>
+      </div>
+      <div class="reply-panel">
+        <div class="why-strip">
+          <div class="why-label">なぜ</div>
+          <div class="why-text">「보고 싶었어」は過去形で「会いたかった」。語尾の〜어が自然な口語。</div>
+          <button class="explain-btn">詳しく→</button>
+        </div>
+        <div class="slang-row">
+          <div class="slang-badge"><strong>보고 싶다</strong> 会いたい</div>
+          <div class="slang-badge"><strong>진짜</strong> 本当に</div>
+        </div>
+        <div class="input-area">
+          <div class="mode-btn">📝</div>
+          <div class="input-field" style="color:var(--text-3)">오빠에게ㅠ...</div>
+          <button class="send-btn">→</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 2: Writing Check -->
+  <div class="phone-wrap">
+    <div class="phone-label">Writing Check</div>
+    <div class="phone">
+      <div class="app-bar">
+        <div class="avatar">🇰🇷</div>
+        <div class="info">
+          <div class="name">지우 (ジウ)</div>
+          <div class="status">📝 添削モード</div>
+        </div>
+        <div class="streak">🔥 12</div>
+      </div>
+      <div class="chat-area">
+        <div class="msg-row char">
+          <div class="char-avatar">🌸</div>
+          <div class="bubble char-bubble">
+            오늘 많이 보고십어!<br>
+            <span style="font-size:11px;color:var(--text-3);">（ユーザーの直書き）</span>
+            <span class="ts">21:10</span>
+          </div>
+        </div>
+      </div>
+      <div class="wc-panel">
+        <div class="wc-header">
+          <span class="wc-title">📝 添削結果</span>
+          <div class="score-ring">
+            <svg viewBox="0 0 52 52">
+              <circle class="ring-bg" cx="26" cy="26" r="22"/>
+              <circle class="ring-fill" cx="26" cy="26" r="22"/>
+            </svg>
+            <div class="score-text">80</div>
+          </div>
+        </div>
+        <div class="wc-corrected">
+          <span class="check">✅</span>
+          <span>오늘 많이 <strong>보고 싶어！</strong></span>
+        </div>
+        <div class="wc-error">
+          <span class="warn">⚠</span>
+          <div class="wc-error-content">
+            <div class="change"><del>보고십어</del> → <ins>보고 싶어</ins></div>
+            <div class="reason">띄어쓰기（分かち書き）が必要</div>
+          </div>
+        </div>
+        <div class="wc-praise">
+          💪 格助詞の使い方が上手！自然な文です
+        </div>
+        <div style="font-size:11px;color:var(--text-3);display:flex;gap:6px;">
+          💡 <span>띄어쓰기に注意してみよう</span>
+        </div>
+      </div>
+      <div class="input-area" style="border-top:1px solid var(--border);background:var(--surface);">
+        <div class="mode-btn" style="background:rgba(255,78,139,0.15);border-color:rgba(255,78,139,0.4);">📝</div>
+        <div class="input-field" style="border-color:rgba(255,78,139,0.4);color:var(--text-3)">外国語で直接書いてみよう</div>
+        <button class="send-btn" style="background:linear-gradient(135deg,#FF8C42,#FF4E8B);">📝</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 3: Language Select -->
+  <div class="phone-wrap">
+    <div class="phone-label">Language Select</div>
+    <div class="phone">
+      <div class="lang-header">
+        <h2>学ぶ言語を選ぼう 🌍</h2>
+        <p>パートナーと一緒に外国語を習得する</p>
+      </div>
+      <div class="char-cards">
+        <div class="char-card selected">
+          <div class="char-flag">🇰🇷</div>
+          <div class="char-info">
+            <div class="char-name">지우 (ジウ)</div>
+            <div class="char-lang">🇰🇷 Korean</div>
+            <div class="char-desc">Seoul 25F · K-pop大好き</div>
+          </div>
+          <div class="char-badge active">学習中</div>
+        </div>
+        <div class="char-card">
+          <div class="char-flag">🇺🇸</div>
+          <div class="char-info">
+            <div class="char-name">Emma</div>
+            <div class="char-lang">🇺🇸 English</div>
+            <div class="char-desc">NYU 23F · Gen Z American</div>
+          </div>
+          <div class="char-badge">Pro</div>
+        </div>
+        <div class="char-card">
+          <div class="char-flag">🇹🇷</div>
+          <div class="char-info">
+            <div class="char-name">Elif</div>
+            <div class="char-lang">🇹🇷 Turkish</div>
+            <div class="char-desc">İstanbul 23F · 情熱的</div>
+          </div>
+          <div class="char-badge">Pro</div>
+        </div>
+        <div class="char-card locked">
+          <div class="char-flag">🇻🇳</div>
+          <div class="char-info">
+            <div class="char-name">Linh</div>
+            <div class="char-lang">🇻🇳 Vietnamese</div>
+            <div class="char-desc">Hà Nội 24F · 詩が好き</div>
+          </div>
+          <div class="char-badge">🔒</div>
+        </div>
+        <div class="char-card locked">
+          <div class="char-flag">🇸🇦</div>
+          <div class="char-info">
+            <div class="char-name">Yasmin</div>
+            <div class="char-lang">🇸🇦 Arabic</div>
+            <div class="char-desc">Dubai 25F · Modern Arab</div>
+          </div>
+          <div class="char-badge">🔒</div>
+        </div>
+      </div>
+      <div class="lang-footer">
+        <button class="cta-btn">지우 と話す →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 4: Vocabulary -->
+  <div class="phone-wrap">
+    <div class="phone-label">Vocabulary + Streak</div>
+    <div class="phone">
+      <div class="app-bar" style="padding-top:52px;">
+        <div style="flex:1;font-size:16px;font-weight:800;">語彙帳</div>
+        <div style="font-size:13px;color:var(--text-3);">138 語</div>
+      </div>
+      <div class="streak-bar">
+        <div class="streak-top">
+          <div style="font-size:12px;color:var(--text-2);">今週の記録</div>
+          <div style="font-size:13px;font-weight:700;color:var(--gold);">🔥 12日連続</div>
+        </div>
+        <div class="streak-days">
+          <div class="streak-day done">月</div>
+          <div class="streak-day done">火</div>
+          <div class="streak-day done">水</div>
+          <div class="streak-day done">木</div>
+          <div class="streak-day today">金</div>
+          <div class="streak-day">土</div>
+          <div class="streak-day">日</div>
+        </div>
+        <div style="margin-top:10px;">
+          <div class="xp-label">
+            <span>XP 650</span>
+            <span>次のレベルまで <strong>150</strong></span>
+          </div>
+          <div class="xp-bar-wrap" style="margin-top:4px;">
+            <div class="xp-bar"></div>
+          </div>
+        </div>
+      </div>
+      <div class="vocab-tabs">
+        <div class="vocab-tab">全て</div>
+        <div class="vocab-tab active">今日の復習</div>
+        <div class="vocab-tab">習得済み</div>
+      </div>
+      <div class="vocab-list">
+        <div class="vocab-card">
+          <div class="srs-dot srs-new"></div>
+          <div class="vocab-front">보고 싶다</div>
+          <div class="vocab-back">会いたい</div>
+          <div style="font-size:18px;">›</div>
+        </div>
+        <div class="vocab-card">
+          <div class="srs-dot srs-soon"></div>
+          <div class="vocab-front">진짜</div>
+          <div class="vocab-back">本当に / マジで</div>
+          <div style="font-size:18px;">›</div>
+        </div>
+        <div class="vocab-card">
+          <div class="srs-dot srs-ok"></div>
+          <div class="vocab-front">오빠</div>
+          <div class="vocab-back">年上男性への呼びかけ</div>
+          <div style="font-size:18px;">›</div>
+        </div>
+        <div class="vocab-card">
+          <div class="srs-dot srs-new"></div>
+          <div class="vocab-front">괜찮아</div>
+          <div class="vocab-back">大丈夫</div>
+          <div style="font-size:18px;">›</div>
+        </div>
+        <div class="vocab-card">
+          <div class="srs-dot srs-soon"></div>
+          <div class="vocab-front">많이</div>
+          <div class="vocab-back">たくさん / とても</div>
+          <div style="font-size:18px;">›</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /phone-row -->
+
+<div class="divider"></div>
+
+<!-- Paywall preview separate row -->
+<div class="phone-row">
+  <div class="phone-wrap">
+    <div class="phone-label">Paywall Sheet</div>
+    <div class="phone">
+      <div class="app-bar">
+        <div class="avatar">🇰🇷</div>
+        <div class="info">
+          <div class="name">지우 (ジウ)</div>
+          <div class="status" style="color:var(--tension);">会話上限に達しました</div>
+        </div>
+      </div>
+      <div class="paywall-overlay">
+        <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:20px;">
+          <div style="text-align:center;color:var(--text-3);">
+            <div style="font-size:40px;margin-bottom:12px;">🔒</div>
+            <div style="font-size:14px;">今日の会話上限（3回）<br>に達しました</div>
+          </div>
+        </div>
+        <div class="paywall-sheet">
+          <div class="paywall-handle"></div>
+          <div class="paywall-char-msg">
+            <div class="paywall-avatar">🌸</div>
+            <div>
+              <div class="paywall-quote">
+                <strong>오빠...</strong> 오늘 대화 끝났어 ㅠ<br>
+                <span style="font-size:11px;color:var(--text-3);">（今日の会話が終わっちゃった ㅠ）</span>
+              </div>
+            </div>
+          </div>
+          <div class="paywall-title">Pro で<span>無制限</span>に</div>
+          <div class="benefits">
+            <div class="benefit-row">
+              <div class="benefit-icon">💬</div>
+              <div>
+                <div class="benefit-title">会話が無制限</div>
+                <div class="benefit-desc">毎日好きなだけ지우と話せる</div>
+              </div>
+            </div>
+            <div class="benefit-row">
+              <div class="benefit-icon">🌍</div>
+              <div>
+                <div class="benefit-title">全言語パートナー解放</div>
+                <div class="benefit-desc">Emma / Elif / Linh / Yasmin も</div>
+              </div>
+            </div>
+            <div class="benefit-row">
+              <div class="benefit-icon">📝</div>
+              <div>
+                <div class="benefit-title">AI添削 無制限</div>
+                <div class="benefit-desc">外国語ライティングを毎日練習</div>
+              </div>
+            </div>
+          </div>
+          <button class="cta-btn">¥1,480 / 月 で始める</button>
+          <div class="paywall-price">いつでもキャンセル可能</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
