@@ -64,8 +64,11 @@ class _StreakBarContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final streakText = data.streak == 0 ? '0日' : '${data.streak}日';
     final xpText = data.todayXp == 0 ? '' : '+${data.todayXp} XP';
+    final today = DateTime.now();
+    // 月曜始まりで 0(月)〜6(日)
+    final todayWeekdayIndex = (today.weekday - 1) % 7;
+    const dayLabels = ['月', '火', '水', '木', '金', '土', '日'];
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -81,32 +84,18 @@ class _StreakBarContent extends StatelessWidget {
           _StreakCount(streak: data.streak),
           const SizedBox(width: 12),
 
-          // XP プログレスバー
+          // 7ドット曜日表示
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(3),
-                  child: LinearProgressIndicator(
-                    value: data.xpProgress,
-                    backgroundColor: AppTheme.primary.withOpacity(0.15),
-                    valueColor: AlwaysStoppedAnimation(AppTheme.primary),
-                    minHeight: 5,
-                  ),
-                ),
-                if (data.weeklyVocab > 0) ...[
-                  const SizedBox(height: 3),
-                  Text(
-                    '今週 +${data.weeklyVocab}表現',
-                    style: TextStyle(
-                      color: Colors.white38,
-                      fontSize: 10,
-                    ),
-                  ),
-                ],
-              ],
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: List.generate(7, (i) {
+                final isToday = i == todayWeekdayIndex;
+                // ストリーク日数で「今日より前の何日か」が完了
+                final daysSinceMonday = i;
+                final isDone = data.streak > 0 &&
+                    daysSinceMonday < todayWeekdayIndex + (data.todayXp > 0 ? 1 : 0);
+                return _buildDayDot(dayLabels[i], isDone, isToday);
+              }),
             ),
           ),
 
@@ -116,7 +105,7 @@ class _StreakBarContent extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
+                gradient: const LinearGradient(
                   colors: [AppTheme.primary, AppTheme.primaryDark],
                 ),
                 borderRadius: BorderRadius.circular(10),
@@ -132,6 +121,45 @@ class _StreakBarContent extends StatelessWidget {
             ).animate().scale(duration: 300.ms, curve: Curves.elasticOut),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildDayDot(String label, bool isDone, bool isToday) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      width: 32,
+      height: 32,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(9),
+        gradient: isToday ? AppTheme.primaryGradient : null,
+        color: isToday
+            ? null
+            : isDone
+                ? AppTheme.primary.withOpacity(0.15)
+                : AppTheme.surface2,
+        border: Border.all(
+          color: isToday
+              ? Colors.transparent
+              : isDone
+                  ? AppTheme.primary.withOpacity(0.3)
+                  : AppTheme.border,
+        ),
+        boxShadow: isToday ? AppTheme.primaryShadow : null,
+      ),
+      child: Center(
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: isToday
+                ? Colors.white
+                : isDone
+                    ? AppTheme.primary
+                    : AppTheme.text3,
+          ),
+        ),
       ),
     );
   }

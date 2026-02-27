@@ -567,3 +567,33 @@ ALTER TABLE fcm_tokens ENABLE ROW LEVEL SECURITY;
 - **DB：** `conversations.date` + `user_id` に複合インデックス。`vocabulary.next_review` にインデックス（SRS復習クエリ最適化）。
 - **スケール：** 無料枠（1,500 req/day）を超えた場合、Gemini 1.5 Flash 有料プランへ移行（$0.075/1M tokens）。
 - **Flutter ビルド最適化：** `flutter build appbundle --release --obfuscate --split-debug-info` でリリースビルド。Tree shaking 有効。
+
+---
+
+## UI/UX 洗練化（2026-02-27）
+
+### Emotional Dark テーマ
+
+**カラーシステム:**
+- Background: `#09090F` (midnight indigo) / Surface 3段階: `#13131F` → `#1C1C2E` → `#252540`
+- Primary: `#FF4E8B` (confident rose) with `primaryGlow` (#FF4E8B @ 12%) and `borderGlow` (#FF4E8B @ 25%)
+- Semantic: `tension` #FF6B6B / `success` #4ECDC4 / `gold` #FFD166
+- Text: `text1` 95% / `text2` 65% / `text3` 38% (全てwhite透過)
+
+**シャドウ:**
+- `primaryShadow`: primary @ 30%, blurRadius 16, offset (0,4)
+- `cardShadow`: black @ 30%, blurRadius 12, offset (0,2)
+
+### MessageBubble
+- キャラクター: surface2 + borderGlow 円形アバター + borderRadius(18,18,18,4) + cardShadow
+- ユーザー: primaryGradient + borderRadius(18,4,18,18) + primaryShadow
+- 250ms fadeIn + slideY(0.05) アニメーション
+
+### ChatScreen 添削モード
+- `_ModeToggleButton`: 36×36円形、モード切り替えアニメーション
+- `_SendButton`: 40×40円形、isCheckMode時はorange-pink gradient
+- 入力フィールド: AnimatedContainer、添削モード時にprimary border
+
+### WritingCheckPanel（新規）
+- CircularProgressIndicator スコアリング（success/gold/tension 色分け）
+- tensionBg背景のエラー行（lineThrough→success 色分け）

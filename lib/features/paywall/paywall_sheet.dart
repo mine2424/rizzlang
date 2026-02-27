@@ -107,10 +107,10 @@ class _PaywallSheetState extends ConsumerState<PaywallSheet> {
     final errorMsg = ref.watch(_errorMessageProvider);
 
     return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.background,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        border: Border.all(color: AppTheme.primary.withOpacity(0.3)),
+      decoration: const BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        border: Border(top: BorderSide(color: AppTheme.border)),
       ),
       padding: EdgeInsets.fromLTRB(
         24, 20, 24, MediaQuery.of(context).viewInsets.bottom + 32,
@@ -133,6 +133,22 @@ class _PaywallSheetState extends ConsumerState<PaywallSheet> {
           if (status == _PurchaseStatus.success) ...[
             _buildSuccess(context),
           ] else ...[
+            // ── タイトル ──
+            ShaderMask(
+              shaderCallback: (bounds) =>
+                  AppTheme.primaryGradient.createShader(bounds),
+              child: const Text(
+                'Proで無制限に',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
             // ── キャラクターメッセージ ──
             _buildCharacterMessage(context),
             const SizedBox(height: 28),
@@ -351,27 +367,52 @@ class _PaywallSheetState extends ConsumerState<PaywallSheet> {
   Widget _buildPurchaseButton(BuildContext context, _PurchaseStatus status) {
     final isLoading = status == _PurchaseStatus.loading;
 
-    return FilledButton(
-      onPressed: isLoading ? null : _onPurchase,
-      style: FilledButton.styleFrom(
-        minimumSize: const Size.fromHeight(56),
-        backgroundColor: AppTheme.primary,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        disabledBackgroundColor: AppTheme.primary.withOpacity(0.4),
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: isLoading ? null : AppTheme.primaryGradient,
+        color: isLoading ? AppTheme.primary.withOpacity(0.4) : null,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: isLoading
+            ? null
+            : [
+                BoxShadow(
+                  color: AppTheme.primary.withOpacity(0.35),
+                  blurRadius: 20,
+                  offset: const Offset(0, 6),
+                )
+              ],
       ),
-      child: isLoading
-          ? const SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(
-                strokeWidth: 2.5,
-                color: Colors.white,
-              ),
-            )
-          : const Text(
-              'Pro にアップグレード',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
-            ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: isLoading ? null : _onPurchase,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 15),
+            child: isLoading
+                ? const Center(
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: Colors.white,
+                      ),
+                    ),
+                  )
+                : Text(
+                    '${_priceText} で始める',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+          ),
+        ),
+      ),
     );
   }
 

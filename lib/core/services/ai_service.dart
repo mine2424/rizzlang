@@ -65,6 +65,82 @@ class AIService {
 
     return GeneratedReply.fromJson(response.data as Map<String, dynamic>);
   }
+
+  /// 外国語テキストをAIで添削（スコア付き）
+  Future<WritingCheckResult> checkWriting({
+    required String userText,
+    required String language,
+    String? contextMessage,
+  }) async {
+    final response = await _supabase.functions.invoke(
+      'check-writing',
+      body: {
+        'userText': userText,
+        'language': language,
+        if (contextMessage != null) 'contextMessage': contextMessage,
+      },
+    );
+
+    if (response.status != 200) {
+      throw AIServiceException(
+        '添削に失敗しました。もう一度お試しください。',
+        statusCode: response.status,
+      );
+    }
+
+    return WritingCheckResult.fromJson(response.data as Map<String, dynamic>);
+  }
+}
+
+// ────────────────────────────────────────────────
+// 添削結果モデル
+// ────────────────────────────────────────────────
+class WritingCheckResult {
+  final String corrected;
+  final List<WritingError> errors;
+  final int score;
+  final String praise;
+  final String tip;
+
+  const WritingCheckResult({
+    required this.corrected,
+    required this.errors,
+    required this.score,
+    required this.praise,
+    required this.tip,
+  });
+
+  factory WritingCheckResult.fromJson(Map<String, dynamic> json) {
+    return WritingCheckResult(
+      corrected: json['corrected'] as String? ?? '',
+      errors: (json['errors'] as List<dynamic>? ?? [])
+          .map((e) => WritingError.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      score: json['score'] as int? ?? 0,
+      praise: json['praise'] as String? ?? '',
+      tip: json['tip'] as String? ?? '',
+    );
+  }
+}
+
+class WritingError {
+  final String original;
+  final String corrected;
+  final String explanation;
+
+  const WritingError({
+    required this.original,
+    required this.corrected,
+    required this.explanation,
+  });
+
+  factory WritingError.fromJson(Map<String, dynamic> json) {
+    return WritingError(
+      original: json['original'] as String? ?? '',
+      corrected: json['corrected'] as String? ?? '',
+      explanation: json['explanation'] as String? ?? '',
+    );
+  }
 }
 
 class AIServiceException implements Exception {

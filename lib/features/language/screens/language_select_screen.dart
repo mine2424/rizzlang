@@ -130,32 +130,57 @@ class _LanguageSelectScreenState extends ConsumerState<LanguageSelectScreen> {
             top: BorderSide(color: Colors.white12),
           ),
         ),
-        child: FilledButton(
-          onPressed: _selectedCharacterId == null || _isSwitching
-              ? null
-              : _onDecide,
-          style: FilledButton.styleFrom(
-            minimumSize: const Size.fromHeight(52),
-            backgroundColor: AppTheme.primary,
-            disabledBackgroundColor: AppTheme.primary.withOpacity(0.4),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
+        child: Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            gradient: (_selectedCharacterId == null || _isSwitching)
+                ? null
+                : AppTheme.primaryGradient,
+            color: (_selectedCharacterId == null || _isSwitching)
+                ? AppTheme.primary.withOpacity(0.4)
+                : null,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: (_selectedCharacterId == null || _isSwitching)
+                ? null
+                : [
+                    BoxShadow(
+                      color: AppTheme.primary.withOpacity(0.35),
+                      blurRadius: 20,
+                      offset: const Offset(0, 6),
+                    )
+                  ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: (_selectedCharacterId == null || _isSwitching)
+                  ? null
+                  : _onDecide,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 15),
+                child: _isSwitching
+                    ? const Center(
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
+                        ),
+                      )
+                    : const Text(
+                        '決定する →',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+              ),
             ),
           ),
-          child: _isSwitching
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child:
-                      CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                )
-              : const Text(
-                  '決定する',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
         ),
       ),
     );
@@ -204,32 +229,47 @@ class _CharacterCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = isSelected
-        ? AppTheme.primary
-        : Colors.white12;
-    final bgColor = isSelected
-        ? AppTheme.primary.withOpacity(0.08)
-        : AppTheme.surfaceVariant;
-
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: bgColor,
+          color: isSelected ? AppTheme.primaryGlow : AppTheme.surface2,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: borderColor,
-            width: isSelected ? 2 : 1,
+            color: isSelected ? AppTheme.primary : AppTheme.border,
+            width: isSelected ? 1.5 : 1,
           ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppTheme.primary.withOpacity(0.12),
+                    blurRadius: 20,
+                    spreadRadius: 2,
+                  )
+                ]
+              : null,
         ),
         child: Row(
           children: [
-            // 国旗
-            Text(
-              character.flagEmoji,
-              style: const TextStyle(fontSize: 36),
+            // 国旗（円形コンテナ）
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: AppTheme.surface3,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected ? AppTheme.borderGlow : AppTheme.border,
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  character.flagEmoji,
+                  style: const TextStyle(fontSize: 26),
+                ),
+              ),
             ),
             const SizedBox(width: 14),
 

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../../core/providers/character_provider.dart';
+import '../../../core/services/ai_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../paywall/paywall_sheet.dart';
 import '../providers/chat_provider.dart';
@@ -10,6 +11,7 @@ import '../providers/streak_provider.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/reply_panel.dart';
 import '../widgets/streak_bar.dart';
+import '../widgets/writing_check_panel.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({super.key});
@@ -20,9 +22,11 @@ class ChatScreen extends ConsumerStatefulWidget {
 
 class _ChatScreenState extends ConsumerState<ChatScreen>
     with SingleTickerProviderStateMixin {
-  final _inputController = TextEditingController();
+  final _controller = TextEditingController();
   final _scrollController = ScrollController(keepScrollOffset: true);
   late final AnimationController _relationshipAnimCtrl;
+  bool _isCheckMode = false;
+  WritingCheckResult? _writingCheckResult;
 
   @override
   void initState() {
@@ -35,7 +39,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
   @override
   void dispose() {
-    _inputController.dispose();
+    _controller.dispose();
     _scrollController.dispose();
     _relationshipAnimCtrl.dispose();
     super.dispose();
@@ -179,6 +183,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
               if (chatState.lastReply != null)
                 ReplyPanel(reply: chatState.lastReply!),
 
+              // 添削結果パネル
+              if (_writingCheckResult != null)
+                WritingCheckPanel(result: _writingCheckResult!),
+
               // エラー時リトライバナー
               if (chatState.error != null)
                 _RetryBanner(
@@ -266,75 +274,112 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   // ────────────────────────────────────────────────
   // 通常入力エリア
   // ────────────────────────────────────────────────
-  Widget _buildInputArea(ChatState chatState) {
+  Widget _buildInputArea(ChatState state) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: AppTheme.surface,
-        border: Border(top: BorderSide(color: Colors.white12)),
+        border: const Border(top: BorderSide(color: AppTheme.border)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '💬 言いたいことを日本語で',
-            style: TextStyle(
-              fontSize: 11,
-              color: AppTheme.muted,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.5,
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            // 添削モードトグルボタン
+            _ModeToggleButton(
+              isCheckMode: _isCheckMode,
+              onTap: () => setState(() => _isCheckMode = !_isCheckMode),
             ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _inputController,
-                  maxLines: 3,
-                  minLines: 1,
-                  enabled: !chatState.isGenerating,
-                  onChanged: (text) =>
-                      ref.read(chatProvider.notifier).onInputChanged(text),
-                  decoration: InputDecoration(
-                    hintText: '例：会いたかったよ、今日何してた？',
-                    hintStyle: TextStyle(color: AppTheme.muted, fontSize: 13),
+            const SizedBox(width: 8),
+            // テキストフィールド
+            Expanded(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                decoration: BoxDecoration(
+                  color: AppTheme.surface2,
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(
+                    color: _isCheckMode
+                        ? AppTheme.primary.withOpacity(0.5)
+                        : AppTheme.border,
+                    width: _isCheckMode ? 1.5 : 1,
                   ),
-                  onSubmitted: (_) => _onGenerate(),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _controller,
+                        style: const TextStyle(
+                            fontSize: 14, color: AppTheme.text1),
+                        decoration: InputDecoration(
+                          hintText: _isCheckMode
+                              ? '外国語で直接書いてみよう ✍️'
+                              : 'オッパに伝えたいことを...',
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 10),
+                          hintStyle: const TextStyle(
+                              color: AppTheme.text3, fontSize: 13.5),
+                        ),
+                        maxLines: 4,
+                        minLines: 1,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 8),
-              ElevatedButton(
-                onPressed: chatState.isGenerating ? null : _onGenerate,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primary,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                ),
-                child: chatState.isGenerating
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white),
-                      )
-                    : const Text('✦ 変換',
-                        style: TextStyle(fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ),
-        ],
+            ),
+            const SizedBox(width: 8),
+            // 送信ボタン
+            _SendButton(
+              isCheckMode: _isCheckMode,
+              onTap: _isCheckMode ? _onCheckWriting : _onSendMessage,
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  void _onGenerate() {
-    final text = _inputController.text.trim();
+  void _onSendMessage() {
+    final text = _controller.text.trim();
     if (text.isEmpty) return;
+    setState(() => _writingCheckResult = null);
     ref.read(chatProvider.notifier).generateReply(text);
-    _inputController.clear();
+    _controller.clear();
+  }
+
+  Future<void> _onCheckWriting() async {
+    final text = _controller.text.trim();
+    if (text.isEmpty) return;
+    final character = ref.read(activeCharacterProvider);
+    final chatState = ref.read(chatProvider);
+    final contextMessage = chatState.messages.isNotEmpty
+        ? chatState.messages.last.content
+        : null;
+    try {
+      final result = await ref.read(aiServiceProvider).checkWriting(
+        userText: text,
+        language: character?.language ?? 'ko',
+        contextMessage: contextMessage,
+      );
+      if (mounted) {
+        setState(() => _writingCheckResult = result);
+        _controller.clear();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('添削できませんでした。もう一度試してください。'),
+            backgroundColor: Colors.red.shade700,
+          ),
+        );
+      }
+    }
   }
 }
 
@@ -673,6 +718,93 @@ class _TurnsRemainingBadge extends StatelessWidget {
             fontSize: 11,
             color: isEmpty ? AppTheme.primary : Colors.white54,
             fontWeight: isEmpty ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ════════════════════════════════════════════════
+// 添削モードトグルボタン
+// ════════════════════════════════════════════════
+class _ModeToggleButton extends StatelessWidget {
+  final bool isCheckMode;
+  final VoidCallback onTap;
+
+  const _ModeToggleButton({required this.isCheckMode, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: isCheckMode
+              ? AppTheme.primary.withOpacity(0.15)
+              : AppTheme.surface2,
+          border: Border.all(
+            color: isCheckMode
+                ? AppTheme.primary.withOpacity(0.5)
+                : AppTheme.border,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            isCheckMode ? '📝' : '✍️',
+            style: const TextStyle(fontSize: 16),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ════════════════════════════════════════════════
+// 送信ボタン
+// ════════════════════════════════════════════════
+class _SendButton extends StatelessWidget {
+  final bool isCheckMode;
+  final VoidCallback onTap;
+
+  const _SendButton({required this.isCheckMode, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: isCheckMode
+              ? const LinearGradient(
+                  colors: [Color(0xFFFF8C42), Color(0xFFFF4E8B)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+              : AppTheme.primaryGradient,
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.primary.withOpacity(0.4),
+              blurRadius: 12,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Text(
+            isCheckMode ? '📝' : '➤',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: isCheckMode ? 16 : 17,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
       ),

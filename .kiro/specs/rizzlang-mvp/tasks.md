@@ -162,13 +162,24 @@
 - [x] **30. 呼称選択のキャラクター連動**（ko/en/tr/vi/ar 別オプション）
 - [x] **31. AIService.generateDemoReply に characterId 追加**
 
+- [x] **32. UI/UX デザイン洗練化 — Emotional Dark テーマ実装**
+  - [x] 32.1 `AppTheme` 全面更新（background #09090F, surface3-layer, border/borderGlow, primaryGlow, tension/success/gold, primaryShadow/cardShadow）
+  - [x] 32.2 `MessageBubble` リデザイン（アバター円形、gradient バブル、flutter_animate 250ms）
+  - [x] 32.3 `ReplyPanel` Why ストリップに primaryGlow 背景、'なぜ'ピルバッジ、_buildSlangBadge(gold + surface2)
+  - [x] 32.4 `ChatScreen` 入力エリア — _ModeToggleButton + _SendButton + AnimatedContainer border
+  - [x] 32.5 `StreakBar` 7ドット曜日表示（_buildDayDot: gradient/tint/surface2）
+  - [x] 32.6 `LanguageSelectScreen` カードに primaryGlow + borderGlow 選択状態、gradient CTA ボタン
+  - [x] 32.7 `PaywallSheet` ShaderMask タイトル + gradient CTA ボタン + surface border
+  - [x] 32.8 `WritingCheckPanel` 新規作成 — CircularProgressIndicator スコアリング + tensionBg エラー行
+  - [x] 32.9 `AIService.checkWriting()` + `WritingCheckResult` / `WritingError` モデル追加
+
 ---
 
 ## コミット履歴
 
 | ハッシュ | 内容 |
 |---------|------|
-| (次) | feat: multilang content + onboarding i18n + paywall i18n ← **最新** |
+| (次) | design: refined UI/UX system — Emotional Dark theme ← **最新** |
 | `1300ef0` | docs: update tasks.md Phase B |
 | `79dbd43` | feat: multi-language support (8 languages, 5 characters) |
 | `50ee7e4` | fix: static analysis + code quality |
