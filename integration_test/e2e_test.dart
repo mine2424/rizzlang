@@ -18,6 +18,8 @@ import 'package:rizzlang/features/chat/screens/chat_screen.dart';
 import 'package:rizzlang/features/chat/widgets/streak_bar.dart';
 import 'package:rizzlang/features/vocabulary/screens/vocabulary_screen.dart';
 
+// ignore_for_file: invalid_use_of_visible_for_testing_member
+
 import '../test/helpers/test_helpers.dart';
 
 void main() {
@@ -366,13 +368,7 @@ Widget _buildNavigationTestApp() {
         routes: [
           GoRoute(
             path: '/chat',
-            builder: (_, __) => ProviderScope(
-              overrides: [
-                overrideStreakWith(fakeStreakDataZero()),
-                overrideChatWith(fakeChatStateEmpty()),
-              ],
-              child: const ChatScreen(),
-            ),
+            builder: (_, __) => const ChatScreen(),
           ),
           GoRoute(
             path: '/vocabulary',
@@ -390,10 +386,7 @@ Widget _buildNavigationTestApp() {
   );
 
   return ProviderScope(
-    overrides: [
-      overrideStreakWith(fakeStreakDataZero()),
-      overrideChatWith(fakeChatStateEmpty()),
-    ],
+    overrides: defaultTestOverrides,
     child: MaterialApp.router(
       theme: AppTheme.dark,
       debugShowCheckedModeBanner: false,

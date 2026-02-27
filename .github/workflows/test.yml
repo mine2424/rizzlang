@@ -42,6 +42,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Flutter のセットアップ
         uses: subosito/flutter-action@v2
@@ -53,7 +55,29 @@ jobs:
       - name: 依存関係インストール
         run: flutter pub get
 
-      - name: ゴールデンテスト実行
+      - name: ゴールデンファイルが存在するか確認
+        id: check_goldens
+        run: |
+          if ls test/goldens/*.png 1> /dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      # ゴールデンが存在しない場合: 生成して自動コミット (mainブランチのみ)
+      - name: ゴールデンファイル生成（初回）
+        if: steps.check_goldens.outputs.exists == 'false' && github.ref == 'refs/heads/main'
+        run: |
+          flutter test test/golden/ --update-goldens
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add test/goldens/
+          git diff --staged --quiet || git commit -m "ci: generate golden baseline files [skip ci]"
+          git push
+
+      # ゴールデンが存在する場合: 差分チェック
+      - name: ゴールデン差分チェック
+        if: steps.check_goldens.outputs.exists == 'true'
         run: flutter test test/golden/ --reporter=expanded
 
       # テスト失敗時: 差分画像を artifacts に保存
@@ -69,6 +93,15 @@ jobs:
             **/*_isolatedDiff.png
           if-no-files-found: ignore
           retention-days: 7
+
+      # 全ゴールデン画像を artifacts にアップロード（PR レビュー用）
+      - name: ゴールデン画像を artifacts にアップロード
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: golden-images-${{ github.sha }}
+          path: test/goldens/
+          retention-days: 30
 
   # ────────────────────────────────────────────────
   # 静的解析 (lint)

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -84,6 +85,14 @@ class ChatNotifier extends StateNotifier<ChatState> {
   ChatNotifier(this._aiService, this._supabase) : super(const ChatState()) {
     _loadTodayConversation();
   }
+
+  /// テスト用コンストラクタ — 初期ステートを直接注入し、Supabase 読み込みをスキップ
+  @visibleForTesting
+  ChatNotifier.withState(
+    this._aiService,
+    this._supabase,
+    ChatState initialState,
+  ) : super(initialState);
 
   Future<void> _loadTodayConversation() async {
     state = state.copyWith(isLoading: true);
