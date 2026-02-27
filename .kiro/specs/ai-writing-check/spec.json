@@ -1,0 +1,17 @@
+{
+  "feature_name": "ai-writing-check",
+  "created_at": "2026-02-27T17:00:00Z",
+  "updated_at": "2026-02-27T17:00:00Z",
+  "language": "ja",
+  "phase": "implementation",
+  "priority": 1,
+  "tech_stack": "flutter + supabase-edge-functions",
+  "status": "implemented",
+  "approvals": {
+    "requirements": { "generated": true, "approved": true },
+    "design": { "generated": true, "approved": true },
+    "tasks": { "generated": true, "approved": true }
+  },
+  "ready_for_implementation": true,
+  "notes": "2026-02-27: 実装完了（check-writing Edge Function + WritingCheckPanel + ChatScreen 添削モードトグル）。Duolingo との最大の差別化ポイント。"
+}

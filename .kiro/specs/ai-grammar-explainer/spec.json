@@ -1,0 +1,17 @@
+{
+  "feature_name": "ai-grammar-explainer",
+  "created_at": "2026-02-27T17:00:00Z",
+  "updated_at": "2026-02-27T17:00:00Z",
+  "language": "ja",
+  "phase": "implementation",
+  "priority": 2,
+  "tech_stack": "flutter + supabase-edge-functions",
+  "status": "implemented",
+  "approvals": {
+    "requirements": { "generated": true, "approved": true },
+    "design": { "generated": true, "approved": true },
+    "tasks": { "generated": true, "approved": true }
+  },
+  "ready_for_implementation": true,
+  "notes": "2026-02-27: 実装完了（explain-grammar Edge Function + GrammarExplainSheet + ReplyPanel '詳しく解説' ボタン）。会話内の文法ポイントを即深掘りできる。"
+}

@@ -1,0 +1,17 @@
+{
+  "feature_name": "ai-character-tts",
+  "created_at": "2026-02-27T17:00:00Z",
+  "updated_at": "2026-02-27T17:00:00Z",
+  "language": "ja",
+  "phase": "implementation",
+  "priority": 3,
+  "tech_stack": "flutter + flutter_tts",
+  "status": "implemented",
+  "approvals": {
+    "requirements": { "generated": true, "approved": true },
+    "design": { "generated": true, "approved": true },
+    "tasks": { "generated": true, "approved": true }
+  },
+  "ready_for_implementation": true,
+  "notes": "2026-02-27: 実装完了（flutter_tts + TtsService + MessageBubble 🔊 ボタン）。読み上げ速度0.85でリスニング練習に最適化。サーバーコスト不要（デバイス側TTS）。"
+}

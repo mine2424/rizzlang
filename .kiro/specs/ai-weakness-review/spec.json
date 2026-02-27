@@ -1,0 +1,17 @@
+{
+  "feature_name": "ai-weakness-review",
+  "created_at": "2026-02-27T17:00:00Z",
+  "updated_at": "2026-02-27T17:00:00Z",
+  "language": "ja",
+  "phase": "requirements",
+  "priority": 5,
+  "tech_stack": "flutter + supabase-edge-functions + postgresql",
+  "status": "not_started",
+  "approvals": {
+    "requirements": { "generated": true, "approved": false },
+    "design": { "generated": true, "approved": false },
+    "tasks": { "generated": true, "approved": false }
+  },
+  "ready_for_implementation": false,
+  "notes": "2026-02-27: 仕様確定、未実装。SM-2データを活用して忘却曲線のピークに合わせて会話に弱点語彙を埋め込む。SRS × コンテキスト学習の融合。"
+}

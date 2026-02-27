@@ -1,0 +1,17 @@
+{
+  "feature_name": "ai-pronunciation-guide",
+  "created_at": "2026-02-27T17:00:00Z",
+  "updated_at": "2026-02-27T17:00:00Z",
+  "language": "ja",
+  "phase": "requirements",
+  "priority": 6,
+  "tech_stack": "flutter",
+  "status": "not_started",
+  "approvals": {
+    "requirements": { "generated": true, "approved": false },
+    "design": { "generated": true, "approved": false },
+    "tasks": { "generated": true, "approved": false }
+  },
+  "ready_for_implementation": false,
+  "notes": "2026-02-27: 仕様確定、未実装。メッセージのポップオーバーでローマ字読み/カタカナ読みを表示。サーバーコスト0（ルールベース変換でほぼ対応可能）。Arabic/Vietnamese が最も難しい。"
+}

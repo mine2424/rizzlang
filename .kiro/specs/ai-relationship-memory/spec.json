@@ -1,0 +1,17 @@
+{
+  "feature_name": "ai-relationship-memory",
+  "created_at": "2026-02-27T17:00:00Z",
+  "updated_at": "2026-02-27T17:00:00Z",
+  "language": "ja",
+  "phase": "requirements",
+  "priority": 4,
+  "tech_stack": "flutter + supabase-edge-functions + postgresql",
+  "status": "not_started",
+  "approvals": {
+    "requirements": { "generated": true, "approved": false },
+    "design": { "generated": true, "approved": false },
+    "tasks": { "generated": true, "approved": false }
+  },
+  "ready_for_implementation": false,
+  "notes": "2026-02-27: 仕様確定、未実装。週次サマリー生成 + generate-reply への記憶注入が核心。実装すると「リアルな恋愛感」が劇的に向上する。Ryota承認後に実装開始。"
+}
