@@ -231,7 +231,7 @@ void main() {
       ));
       await tester.pump(const Duration(milliseconds: 300));
 
-      expect(find.textContaining('地우がちょっと拗ねています'), findsNothing);
+      expect(find.textContaining('지우がちょっと拗ねています'), findsNothing);
     });
   });
 

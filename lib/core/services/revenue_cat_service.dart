@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'auth_provider.dart';
+import '../providers/auth_provider.dart';
 
 // ────────────────────────────────────────────────
 // RevenueCat API Keys

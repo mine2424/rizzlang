@@ -229,7 +229,7 @@ class _CallNameDialogState extends ConsumerState<_CallNameDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: AppTheme.surface,
-      title: const Text('地우からの呼び方'),
+      title: const Text('지우からの呼び方'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

@@ -3,9 +3,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'auth_provider.dart';
+import '../providers/auth_provider.dart';
 
 // ────────────────────────────────────────────────
 // Provider
@@ -36,8 +35,7 @@ class FcmService {
   Future<void> initialize({
     required void Function(String route) onTapNavigate,
   }) async {
-    // ── バックグラウンドハンドラー登録 ──
-    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+    // ── バックグラウンドハンドラーは main.dart で登録済み（二重登録回避）──
 
     // ── ローカル通知 初期化（フォアグラウンド表示用）──
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');

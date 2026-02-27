@@ -137,7 +137,7 @@ class _ReplyPanelState extends State<ReplyPanel> {
               (entry) => Padding(
                 padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
                 child: _InfoRow(
-                  badge: '스라그',
+                  badge: 'スラング',
                   badgeColor: Colors.blue.shade300,
                   text: '${entry.value.word}   —   ${entry.value.meaning}',
                   wordHighlight: entry.value.word,

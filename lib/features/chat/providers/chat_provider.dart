@@ -3,7 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/models/message_model.dart';
+import '../../../core/providers/auth_provider.dart';
 import '../../../core/services/ai_service.dart';
+
+/// copyWith で nullable フィールドを null クリアするためのセンチネルクラス
+class _Undefined {
+  const _Undefined();
+}
+
+/// センチネルのデフォルト値（コンパイル時定数）
+const _undefined = _Undefined();
 
 // ────────────────────────────────────────────────
 // State
@@ -60,7 +69,8 @@ class ChatState {
     int? turnsRemaining,
     String? error,
     String? openingMessage,
-    String? tensionPhase,
+    // tensionPhase は null クリアも許可するため Object? + センチネルを使用
+    Object? tensionPhase = _undefined,
     bool? showRelationshipUp,
     int? editCount,
     int? retryCount,
@@ -77,7 +87,10 @@ class ChatState {
       turnsRemaining: turnsRemaining ?? this.turnsRemaining,
       error: error ?? this.error,
       openingMessage: openingMessage ?? this.openingMessage,
-      tensionPhase: tensionPhase ?? this.tensionPhase,
+      // _undefined の場合は既存値を維持、null が渡された場合は null にクリア
+      tensionPhase: tensionPhase is _Undefined
+          ? this.tensionPhase
+          : tensionPhase as String?,
       showRelationshipUp: showRelationshipUp ?? this.showRelationshipUp,
       editCount: editCount ?? this.editCount,
       retryCount: retryCount ?? this.retryCount,
@@ -86,7 +99,6 @@ class ChatState {
       scenarioDay: scenarioDay ?? this.scenarioDay,
     );
   }
-}
 
 // ────────────────────────────────────────────────
 // Notifier
@@ -163,7 +175,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
     }
   }
 
-  /// 当日初回セッション: ユーザーデータ取得 + 地우の opening メッセージ表示
+  /// 当日初回セッション: ユーザーデータ取得 + 지우の opening メッセージ表示
   Future<void> _initTodaySession(String userId) async {
     try {
       // ユーザー設定を取得
@@ -266,7 +278,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
         createdAt: DateTime.now(),
       );
 
-      // 地우の次のメッセージ
+      // 지우の次のメッセージ
       final jiuNextMessage = MessageModel(
         id: (DateTime.now().millisecondsSinceEpoch + 2).toString(),
         role: MessageRole.character,
@@ -321,9 +333,12 @@ class ChatNotifier extends StateNotifier<ChatState> {
     await generateReply(_lastSubmittedText, isRetry: true);
   }
 
-  /// 仲直りアニメーション表示後にリセット
+  /// 仲直りアニメーション表示後にリセット（tensionPhase もクリア）
   void dismissRelationshipUp() {
-    state = state.copyWith(showRelationshipUp: false);
+    state = state.copyWith(
+      showRelationshipUp: false,
+      tensionPhase: null, // Tension フェーズ終了 → null クリア
+    );
   }
 
   /// Pro アップグレード完了後に上限をリセット
@@ -336,7 +351,8 @@ class ChatNotifier extends StateNotifier<ChatState> {
 // Provider
 // ────────────────────────────────────────────────
 final chatProvider = StateNotifierProvider<ChatNotifier, ChatState>((ref) {
-  final supabase = Supabase.instance.client;
-  final aiService = AIService(supabase);
+  // supabaseClientProvider 経由でテスト時のモック注入を可能にする
+  final supabase = ref.watch(supabaseClientProvider);
+  final aiService = ref.watch(aiServiceProvider);
   return ChatNotifier(aiService, supabase);
 });

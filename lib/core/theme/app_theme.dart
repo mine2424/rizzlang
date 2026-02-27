@@ -15,10 +15,12 @@ class AppTheme {
         colorScheme: ColorScheme.dark(
           primary: primary,
           secondary: primaryDark,
-          background: background,
           surface: surface,
-          onBackground: onSurface,
           onSurface: onSurface,
+          // ignore: deprecated_member_use
+          background: background,
+          // ignore: deprecated_member_use
+          onBackground: onSurface,
         ),
         scaffoldBackgroundColor: background,
         appBarTheme: const AppBarTheme(
@@ -40,14 +42,15 @@ class AppTheme {
           fillColor: surface,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.white12),
+            borderSide: const BorderSide(color: Colors.white12),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: primary),
+            borderSide: const BorderSide(color: primary),
           ),
         ),
-        fontFamily: 'NotoSansJP',
+        // NotoSansJP: assets/fonts/ にフォントファイルを配置後に有効化
+        // fontFamily: 'NotoSansJP',
       );
 
   static ThemeData get light => dark; // 現在はダークのみ

@@ -161,7 +161,7 @@ function buildSystemPrompt(params: {
     tensionInstruction = `
 【⚠️ TENSION シーン - 摩擦フェーズ】
 今、지우とユーザーの間に小さなすれ違いが起きています。
-- 地우は少し拗ねている・傷ついている状態です
+- 지우は少し拗ねている・傷ついている状態です
 - 返答は短め、やや素っ気なく、でも突き放しすぎない
 - ㅠㅠ を多用する。핑계 대지 마（言い訳しないで）などのフレーズを使う
 - ユーザーが謝ったり優しい言葉をかければ柔らかくなる余地を残す
@@ -169,7 +169,7 @@ function buildSystemPrompt(params: {
   } else if (params.tensionPhase === 'reconciliation') {
     tensionInstruction = `
 【💕 TENSION シーン - 仲直りフェーズ】
-ユーザーが優しい言葉をかけてくれたので、地우は心を開き始めています。
+ユーザーが優しい言葉をかけてくれたので、지우は心を開き始めています。
 - 最初は少し照れくさそうだが、だんだん甘えてくる
 - 화해（仲直り）の表現を使う: 나도 미안해 / 역시 오빠가 최고야 など
 - 普段より少し甘えた口調に戻す
@@ -189,7 +189,7 @@ ${levelGuides[params.userLevel] ?? levelGuides[2]}
 返答の口調を時間帯に合わせる（朝=眠そう/元気、夜=少し甘え気味）
 
 ${params.contextNote ? `【シーン背景】\n${params.contextNote}\n` : ''}
-${params.nextMessageHint ? `【地우の次のひと言ヒント（参考）】\n"${params.nextMessageHint}"\n` : ''}
+${params.nextMessageHint ? `【지우の次のひと言ヒント（参考）】\n"${params.nextMessageHint}"\n` : ''}
 ${tensionInstruction}
 
 【絶対ルール】
@@ -198,7 +198,7 @@ ${tensionInstruction}
 - ${params.userCallName}への呼びかけを自然に使う
 - 返答は必ず以下のJSON形式のみ（余分なテキスト禁止）:
 
-{"reply":"（자연스러운 한국어 답장）","why":"（日本語で30文字以内の解説・この表現のポイント）","slang":[{"word":"単語","meaning":"意味"}],"nextMessage":"（地우の次のひと言・会話を続けたくなる一文）"}`
+{"reply":"（자연스러운 한국어 답장）","why":"（日本語で30文字以内の解説・この表現のポイント）","slang":[{"word":"単語","meaning":"意味"}],"nextMessage":"（지우の次のひと言・会話を続けたくなる一文）"}`
 }
 
 // ============================================================

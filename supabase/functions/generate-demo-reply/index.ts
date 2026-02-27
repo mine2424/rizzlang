@@ -22,11 +22,11 @@ serve(async (req) => {
 
     const prompt = `
 あなたは韓国語学習アプリのデモアシスタントです。
-地우（韓国人女性）からのメッセージ: "${DEMO_JIU_MESSAGE}"
+지우（韓国人女性）からのメッセージ: "${DEMO_JIU_MESSAGE}"
 ユーザーが返したいこと（日本語）: "${userText}"
 
 以下のJSONのみを返す:
-{"reply":"...（自然な韓国語返信）","why":"...（30文字以内・なぜその表現か・日本語）","slang":[{"word":"...","meaning":"..."}],"nextMessage":"...（地우の次のセリフ・韓国語）"}
+{"reply":"...（自然な韓国語返信）","why":"...（30文字以内・なぜその表現か・日本語）","slang":[{"word":"...","meaning":"..."}],"nextMessage":"...（지우の次のセリフ・韓国語）"}
 `
 
     const result = await model.generateContent(prompt)
