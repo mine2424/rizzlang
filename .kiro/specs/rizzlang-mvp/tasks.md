@@ -152,27 +152,15 @@
 ## 残コード実装タスク
 
 ### Phase B 継続
-- [ ] **23. Season 1 Week 1 シード — 多言語版**
-  - 英語 / トルコ語 / ベトナム語 / アラビア語の `scenario_templates` シード
-  - 지우の season1_week1.sql を参考に4言語分作成（各7シーン × 4難易度 × 4時間帯）
-
-- [ ] **24. オンボーディング 多言語対応**
-  - Step 0 に「言語選択」ステップを追加（Welcome の前）
-  - 選択言語に応じてデモチャットのキャラクターを切り替え
-  - `generate-demo-reply` に `characterId` パラメータ追加
-
-- [ ] **25. Paywall — 言語解放文言の更新**
-  - 現在: "지우との会話を続ける" → Pro で "全言語パートナーが解放される" 文言に変更
-  - 言語選択画面のロックカードから直接 Paywall を開けるよう実装
-
-- [ ] **26. テスト更新**
-  - `test_helpers.dart` に `CharacterModel` フェイクデータを追加
-  - Golden テストに言語選択画面を追加（5キャラクター × Free/Pro 表示）
-  - E2E テストに「言語切り替え → チャット」フローを追加
-
-- [ ] **27. SETUP.md 更新**
-  - 多言語 migration / seed の手順を追記
-  - `characters_multilang.sql` の適用手順を明記
+- [x] **23. Season 1 Week 1 シード — 多言語版**（`season1_week1_multilang.sql` — 4言語 × 7シーン × 16バリアント = 1,289行）
+- [x] **24. オンボーディング 多言語対応**（Step 0: LanguageSelect 追加、デモチャットをキャラクター連動）
+- [x] **25. Paywall — 言語別メッセージ + 全言語解放特典追加**
+- [x] **26. テスト更新**（CharacterModel フェイク × 5キャラ + FakeActiveCharacterNotifier + defaultTestOverrides に追加）
+- [x] **27. SETUP.md 更新**（多言語シード手順追記）
+- [x] **28. generate-demo-reply 多言語対応**（characterId + DEMO_MESSAGES × 5言語）
+- [x] **29. オンボーディング言語選択ステップ**（_Step.languageSelect を最初に）
+- [x] **30. 呼称選択のキャラクター連動**（ko/en/tr/vi/ar 別オプション）
+- [x] **31. AIService.generateDemoReply に characterId 追加**
 
 ---
 
@@ -180,7 +168,9 @@
 
 | ハッシュ | 内容 |
 |---------|------|
-| `79dbd43` | feat: multi-language support (8 languages, 5 characters) ← **最新** |
+| (次) | feat: multilang content + onboarding i18n + paywall i18n ← **最新** |
+| `1300ef0` | docs: update tasks.md Phase B |
+| `79dbd43` | feat: multi-language support (8 languages, 5 characters) |
 | `50ee7e4` | fix: static analysis + code quality |
 | `e034e61` | fix: resolve all TODO items + polish |
 | `093fa37` | test: E2E + VRT golden + CI |

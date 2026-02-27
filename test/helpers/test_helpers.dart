@@ -13,9 +13,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:rizzlang/core/models/character_model.dart';
 import 'package:rizzlang/core/models/message_model.dart';
 import 'package:rizzlang/core/models/vocabulary_model.dart';
 import 'package:rizzlang/core/providers/auth_provider.dart';
+import 'package:rizzlang/core/providers/character_provider.dart';
 import 'package:rizzlang/core/services/ai_service.dart';
 import 'package:rizzlang/core/theme/app_theme.dart';
 import 'package:rizzlang/features/chat/providers/streak_provider.dart';
@@ -224,10 +226,70 @@ Override overrideSupabase() =>
 Override overrideVocabEmpty() =>
     vocabularyProvider.overrideWith((ref) async => <VocabularyModel>[]);
 
+/// activeCharacterProvider を特定キャラクターでオーバーライド
+Override overrideActiveCharacterWith(CharacterModel character) =>
+    activeCharacterProvider.overrideWith((ref) => FakeActiveCharacterNotifier(character));
+
 /// テスト用に全プロバイダーをオーバーライドするデフォルトセット
 List<Override> get defaultTestOverrides => [
       overrideSupabase(),
       overrideStreakWith(fakeStreakDataZero()),
       overrideChatWith(fakeChatStateEmpty()),
       overrideVocabEmpty(),
+      overrideActiveCharacterWith(fakeCharacterJiu()),
     ];
+
+// ────────────────────────────────────────────────
+// CharacterModel フェイクデータビルダー
+// ────────────────────────────────────────────────
+
+CharacterModel fakeCharacterJiu() => const CharacterModel(
+      id: 'c1da0000-0000-0000-0000-000000000001',
+      name: '지우 (ジウ)',
+      language: 'ko',
+      persona: {'callName': 'オッパ', 'speechStyle': 'ソウル口語', 'age': 25},
+    );
+
+CharacterModel fakeCharacterEmma() => const CharacterModel(
+      id: 'a1da0000-0000-0000-0000-000000000002',
+      name: 'Emma',
+      language: 'en',
+      persona: {'callName': 'babe', 'speechStyle': 'Gen Z American', 'age': 23},
+    );
+
+CharacterModel fakeCharacterElif() => const CharacterModel(
+      id: 'b1da0000-0000-0000-0000-000000000003',
+      name: 'Elif',
+      language: 'tr',
+      persona: {'callName': 'canım', 'speechStyle': 'İstanbul koloquial', 'age': 23},
+    );
+
+CharacterModel fakeCharacterLinh() => const CharacterModel(
+      id: 'c2da0000-0000-0000-0000-000000000004',
+      name: 'Linh',
+      language: 'vi',
+      persona: {'callName': 'anh ơi', 'speechStyle': 'Hà Nội', 'age': 24},
+    );
+
+CharacterModel fakeCharacterYasmin() => const CharacterModel(
+      id: 'd1da0000-0000-0000-0000-000000000005',
+      name: 'Yasmin',
+      language: 'ar',
+      persona: {'callName': 'habibi', 'speechStyle': 'Egyptian dialect', 'age': 25},
+    );
+
+// ────────────────────────────────────────────────
+// FakeActiveCharacterNotifier
+// ────────────────────────────────────────────────
+
+class FakeActiveCharacterNotifier extends ActiveCharacterNotifier {
+  FakeActiveCharacterNotifier(CharacterModel character)
+      : super(createMockSupabase()) {
+    state = character;
+  }
+
+  @override
+  Future<void> switchCharacter(String characterId) async {
+    // テスト用: DB 更新なしで即切り替え
+  }
+}

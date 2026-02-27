@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
+import '../../core/providers/character_provider.dart';
 import '../../core/services/revenue_cat_service.dart';
 import '../../core/theme/app_theme.dart';
 
@@ -180,12 +181,29 @@ class _PaywallSheetState extends ConsumerState<PaywallSheet> {
   }
 
   Widget _buildCharacterMessage(BuildContext context) {
+    final character = ref.watch(activeCharacterProvider);
+    final lang = character?.language ?? 'ko';
+
+    // 言語別リミット到達メッセージ
+    final Map<String, (String, String)> _limitMessages = {
+      'ko': ('오빠... 오늘 대화 끝났어 ㅠ', '（今日の会話が終わっちゃった ㅠ）'),
+      'en': ("babe... we ran out of messages today ㅠ", "(I wanna keep talking with you...)"),
+      'tr': ('canım... bugün konuşmamız bitti ㅠ', '（今日の会話が終わっちゃった ㅠ）'),
+      'vi': ('anh ơi... hôm nay mình hết lượt rồi ㅠ', '（今日の会話が終わっちゃった ㅠ）'),
+      'ar': ('habibi... we ran out of messages today ㅠ', '（今日の会話が終わっちゃった ㅠ）'),
+    };
+    final charName = character?.shortName ?? '지우';
+    final (mainMsg, subMsg) = _limitMessages[lang] ?? _limitMessages['ko']!;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const CircleAvatar(
+        CircleAvatar(
           radius: 22,
-          child: Text('🌸', style: TextStyle(fontSize: 20)),
+          child: Text(
+            character?.flagEmoji ?? '🌸',
+            style: const TextStyle(fontSize: 20),
+          ),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -203,7 +221,7 @@ class _PaywallSheetState extends ConsumerState<PaywallSheet> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '오빠... 오늘 대화 끝났어 ㅠ',
+                  mainMsg,
                   style: TextStyle(
                     fontSize: 15,
                     color: Colors.white.withOpacity(0.9),
@@ -212,12 +230,12 @@ class _PaywallSheetState extends ConsumerState<PaywallSheet> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '（今日の会話が終わっちゃった ㅠ）',
+                  subMsg,
                   style: TextStyle(color: Colors.white38, fontSize: 12),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '지우がもっと話したそうにしています... 🥺',
+                  '$charNameがもっと話したそうにしています... 🥺',
                   style: TextStyle(
                     color: AppTheme.primary,
                     fontSize: 13,
@@ -233,8 +251,11 @@ class _PaywallSheetState extends ConsumerState<PaywallSheet> {
   }
 
   Widget _buildBenefits(BuildContext context) {
-    const benefits = [
-      ('💬', '会話が無制限', '毎日何度でも지우と話せる'),
+    final character = ref.watch(activeCharacterProvider);
+    final charName = character?.shortName ?? '지우';
+    final benefits = [
+      ('💬', '会話が無制限', '毎日何度でも$charNameと話せる'),
+      ('🌍', '全言語パートナーが解放', '5人のキャラクターと学べる（EN/TR/VI/AR）'),
       ('📚', '語彙帳 全機能', 'SRS（間隔反復）で効率的に復習'),
       ('🎭', '全シナリオ解放', 'Season 1〜 完全アクセス'),
       ('⚡', '広告なし', 'ストレスフリーな学習体験'),

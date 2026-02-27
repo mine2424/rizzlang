@@ -9,7 +9,85 @@ import '../../../core/theme/app_theme.dart';
 // ────────────────────────────────────────────────
 // Onboarding ステップ
 // ────────────────────────────────────────────────
-enum _Step { welcome, demoChat, callName, complete }
+enum _Step { languageSelect, welcome, demoChat, callName, complete }
+
+// ────────────────────────────────────────────────
+// キャラクター定義
+// ────────────────────────────────────────────────
+class _CharacterInfo {
+  final String id;
+  final String name;
+  final String language;
+  final String languageCode;
+  final String flag;
+  final String demoOpening;
+
+  const _CharacterInfo({
+    required this.id,
+    required this.name,
+    required this.language,
+    required this.languageCode,
+    required this.flag,
+    required this.demoOpening,
+  });
+}
+
+const _characters = [
+  _CharacterInfo(
+    id: 'c1da0000-0000-0000-0000-000000000001',
+    name: '지우 (ジウ)',
+    language: '韓国語',
+    languageCode: 'ko',
+    flag: '🇰🇷',
+    demoOpening: '안녕 😊 어제 진짜 행복했어\n（昨日、本当に幸せだったよ）',
+  ),
+  _CharacterInfo(
+    id: 'a1da0000-0000-0000-0000-000000000002',
+    name: 'Emma',
+    language: '英語',
+    languageCode: 'en',
+    flag: '🇺🇸',
+    demoOpening: 'Good morning babe 🥺 I keep thinking about you...',
+  ),
+  _CharacterInfo(
+    id: 'b1da0000-0000-0000-0000-000000000003',
+    name: 'Elif',
+    language: 'トルコ語',
+    languageCode: 'tr',
+    flag: '🇹🇷',
+    demoOpening: 'Günaydın canım 🌸 Seni çok özledim...',
+  ),
+  _CharacterInfo(
+    id: 'c2da0000-0000-0000-0000-000000000004',
+    name: 'Linh',
+    language: 'ベトナム語',
+    languageCode: 'vi',
+    flag: '🇻🇳',
+    demoOpening: 'Chào buổi sáng anh ơi 🌸 Em nhớ anh quá...',
+  ),
+  _CharacterInfo(
+    id: 'd1da0000-0000-0000-0000-000000000005',
+    name: 'Yasmin',
+    language: 'アラビア語',
+    languageCode: 'ar',
+    flag: '🇦🇪',
+    demoOpening: 'Good morning habibi 🌹 I missed you so much...',
+  ),
+];
+
+// ────────────────────────────────────────────────
+// 呼称オプション（キャラクター言語別）
+// ────────────────────────────────────────────────
+List<String> _callNameOptions(String languageCode) {
+  return switch (languageCode) {
+    'ko' => ['오빠', '자기야'],
+    'en' => ['babe', 'honey'],
+    'tr' => ['canım', 'aşkım'],
+    'vi' => ['anh ơi', 'anh yêu'],
+    'ar' => ['habibi', 'حبيبي'],
+    _ => ['babe', 'honey'],
+  };
+}
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -19,8 +97,12 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 }
 
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
-  _Step _step = _Step.welcome;
-  String _selectedCallName = 'オッパ';
+  _Step _step = _Step.languageSelect;
+
+  // 選択キャラクター（デフォルト: 지우）
+  _CharacterInfo _selectedCharacter = _characters[0];
+
+  String _selectedCallName = _characters[0].demoOpening;
   final TextEditingController _customNameCtrl = TextEditingController();
   bool _isCustom = false;
 
@@ -30,13 +112,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   bool _isDemoLoading = false;
   bool _showSignupPrompt = false;
 
-  // 지우のオープニングメッセージ（デモ用）
-  static const _jiuOpening = '안녕 😊 어제 진짜 행복했어\n（昨日、本当に幸せだったよ）';
-
   @override
   void initState() {
     super.initState();
-    _demoMessages.add({'role': 'jiu', 'content': _jiuOpening});
+    // 最初のキャラクターのデフォルト呼称をセット
+    _selectedCallName = _callNameOptions(_selectedCharacter.languageCode).first;
+    _demoMessages.add({'role': 'char', 'content': _selectedCharacter.demoOpening});
   }
 
   @override
@@ -46,9 +127,84 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     super.dispose();
   }
 
+  void _onCharacterSelected(_CharacterInfo character) {
+    setState(() {
+      _selectedCharacter = character;
+      _selectedCallName = _callNameOptions(character.languageCode).first;
+    });
+  }
+
   // ────────────────────────────────────────────────
   // ステップ別 Widget
   // ────────────────────────────────────────────────
+
+  Widget _buildLanguageSelect(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            'どの言語を学ぶ？',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  height: 1.4,
+                ),
+          )
+              .animate()
+              .fadeIn(duration: 500.ms)
+              .slideY(begin: 0.2, end: 0),
+          const SizedBox(height: 8),
+          Text(
+            'あなたのパートナーを選んでください',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.white60,
+                ),
+          )
+              .animate(delay: 200.ms)
+              .fadeIn(duration: 400.ms),
+          const SizedBox(height: 40),
+
+          // キャラクターカード（横スクロール）
+          SizedBox(
+            height: 140,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: _characters.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              itemBuilder: (context, i) {
+                final char = _characters[i];
+                final isSelected = _selectedCharacter.id == char.id;
+                return _CharacterCard(
+                  character: char,
+                  isSelected: isSelected,
+                  onTap: () => _onCharacterSelected(char),
+                );
+              },
+            ),
+          )
+              .animate(delay: 300.ms)
+              .fadeIn(duration: 400.ms),
+
+          const SizedBox(height: 40),
+
+          FilledButton(
+            onPressed: () => setState(() => _step = _Step.welcome),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(52),
+              backgroundColor: AppTheme.primary,
+            ),
+            child: const Text('体験してみる →', style: TextStyle(fontSize: 16)),
+          )
+              .animate(delay: 500.ms)
+              .fadeIn(duration: 400.ms)
+              .slideY(begin: 0.3, end: 0),
+        ],
+      ),
+    );
+  }
 
   Widget _buildWelcome(BuildContext context) {
     return Padding(
@@ -56,12 +212,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text('🌸', style: const TextStyle(fontSize: 72))
+          Text(_selectedCharacter.flag, style: const TextStyle(fontSize: 72))
               .animate()
               .scale(duration: 600.ms, curve: Curves.elasticOut),
           const SizedBox(height: 24),
           Text(
-            'ジウと話して\n韓国語を学ぼう',
+            '${_selectedCharacter.name}と話して\n${_selectedCharacter.language}を学ぼう',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.bold,
@@ -73,7 +229,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               .slideY(begin: 0.2, end: 0),
           const SizedBox(height: 16),
           Text(
-            'ソウル出身のジウ (지우) と\n疑似恋愛しながら自然な韓国語が身につく',
+            '${_selectedCharacter.name}と疑似恋愛しながら\n自然な${_selectedCharacter.language}が身につく',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Colors.white60,
@@ -84,7 +240,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               .fadeIn(duration: 500.ms),
           const SizedBox(height: 48),
           FilledButton(
-            onPressed: () => setState(() => _step = _Step.demoChat),
+            onPressed: () {
+              // DemoChat のメッセージをリセットして選択キャラのオープニングを設定
+              setState(() {
+                _demoMessages.clear();
+                _demoMessages.add({'role': 'char', 'content': _selectedCharacter.demoOpening});
+                _showSignupPrompt = false;
+                _step = _Step.demoChat;
+              });
+            },
             style: FilledButton.styleFrom(
               minimumSize: const Size.fromHeight(52),
               backgroundColor: AppTheme.primary,
@@ -114,18 +278,22 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               CircleAvatar(
                 radius: 20,
                 backgroundColor: AppTheme.primary.withOpacity(0.2),
-                child: const Text('🌸'),
+                child: Text(_selectedCharacter.flag,
+                    style: const TextStyle(fontSize: 18)),
               ),
               const SizedBox(width: 12),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('지우 (ジウ)', style: Theme.of(context).textTheme.titleMedium),
-                  Text('오늘도 연락해줘서 좋아 ㅎ',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: Colors.white38)),
+                  Text(_selectedCharacter.name,
+                      style: Theme.of(context).textTheme.titleMedium),
+                  Text(
+                    _selectedCharacter.language,
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.copyWith(color: Colors.white38),
+                  ),
                 ],
               ),
             ],
@@ -140,7 +308,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             itemBuilder: (context, i) {
               final msg = _demoMessages[i];
               final isUser = msg['role'] == 'user';
-              return _DemoBubble(message: msg['content']!, isUser: isUser);
+              return _DemoBubble(
+                message: msg['content']!,
+                isUser: isUser,
+                characterFlag: _selectedCharacter.flag,
+              );
             },
           ),
         ),
@@ -150,7 +322,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                const CircleAvatar(radius: 14, child: Text('🌸')),
+                CircleAvatar(
+                    radius: 14,
+                    child: Text(_selectedCharacter.flag,
+                        style: const TextStyle(fontSize: 12))),
                 const SizedBox(width: 8),
                 _TypingIndicator(),
               ],
@@ -177,7 +352,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         borderRadius: BorderRadius.circular(24),
                         borderSide: BorderSide.none,
                       ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 12),
                     ),
                   ),
                 ),
@@ -210,22 +386,33 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
     try {
       final aiService = ref.read(aiServiceProvider);
-      final reply = await aiService.generateDemoReply(text);
+      final reply = await aiService.generateDemoReply(
+        text,
+        characterId: _selectedCharacter.id,
+      );
       setState(() {
-        _demoMessages.add({'role': 'jiu', 'content': '${reply.reply}\n\n💡 ${reply.why}'});
+        _demoMessages.add({
+          'role': 'char',
+          'content': '${reply.reply}\n\n💡 ${reply.why}',
+        });
         if (reply.slang.isNotEmpty) {
           _demoMessages.add({
             'role': 'system',
-            'content': '📚 ${reply.slang.map((s) => '${s.word} = ${s.meaning}').join('\n')}',
+            'content':
+                '📚 ${reply.slang.map((s) => '${s.word} = ${s.meaning}').join('\n')}',
           });
         }
         // 2回目の返信後にサインアップ促進
-        final userMsgCount = _demoMessages.where((m) => m['role'] == 'user').length;
+        final userMsgCount =
+            _demoMessages.where((m) => m['role'] == 'user').length;
         if (userMsgCount >= 2) _showSignupPrompt = true;
       });
     } catch (e) {
       setState(() {
-        _demoMessages.add({'role': 'jiu', 'content': 'ちょっと待って... もう一度試して ㅠ'});
+        _demoMessages.add({
+          'role': 'char',
+          'content': 'ちょっと待って... もう一度試して 🥺',
+        });
       });
     } finally {
       setState(() => _isDemoLoading = false);
@@ -238,7 +425,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppTheme.primary.withOpacity(0.15), AppTheme.primary.withOpacity(0.05)],
+          colors: [
+            AppTheme.primary.withOpacity(0.15),
+            AppTheme.primary.withOpacity(0.05)
+          ],
         ),
         border: Border.all(color: AppTheme.primary.withOpacity(0.4)),
         borderRadius: BorderRadius.circular(16),
@@ -246,12 +436,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       child: Column(
         children: [
           Text(
-            '지우がもっと話したそうにしています... 🥺',
+            '${_selectedCharacter.name}がもっと話したそうにしています... 🥺',
             textAlign: TextAlign.center,
-            style: Theme.of(context)
-                .textTheme
-                .titleSmall
-                ?.copyWith(color: AppTheme.primary, fontWeight: FontWeight.bold),
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  color: AppTheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
           ),
           const SizedBox(height: 12),
           FilledButton(
@@ -268,18 +458,19 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Widget _buildCallName(BuildContext context) {
-    const options = ['오빠 (オッパ)', '자기야 (自分)', 'カスタム'];
+    final options = _callNameOptions(_selectedCharacter.languageCode);
+
     return Padding(
       padding: const EdgeInsets.all(32),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text('🌸', style: const TextStyle(fontSize: 56))
+          Text(_selectedCharacter.flag, style: const TextStyle(fontSize: 56))
               .animate()
               .scale(duration: 500.ms, curve: Curves.elasticOut),
           const SizedBox(height: 24),
           Text(
-            '지우からなんて\n呼ばれたい?',
+            '${_selectedCharacter.name}からなんて\n呼ばれたい?',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
@@ -287,15 +478,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 ),
           ),
           const SizedBox(height: 32),
-          ...['오빠 (オッパ)', '자기야 (自分)'].map(
+          ...options.map(
             (label) => Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: _CallNameOption(
                 label: label,
-                isSelected: !_isCustom && _selectedCallName == label.split(' ').first,
+                isSelected: !_isCustom && _selectedCallName == label,
                 onTap: () => setState(() {
                   _isCustom = false;
-                  _selectedCallName = label.split(' ').first;
+                  _selectedCallName = label;
                 }),
               ),
             ),
@@ -319,9 +510,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 20, vertical: 14),
               ),
-              onChanged: (v) => _selectedCallName = v.isEmpty ? 'オッパ' : v,
+              onChanged: (v) => _selectedCallName =
+                  v.isEmpty ? options.first : v,
             ),
           ],
           const SizedBox(height: 40),
@@ -339,9 +532,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Future<void> _goToComplete() async {
+    final options = _callNameOptions(_selectedCharacter.languageCode);
     final callName = _isCustom && _customNameCtrl.text.isNotEmpty
         ? _customNameCtrl.text
-        : _selectedCallName;
+        : _selectedCallName.isEmpty
+            ? options.first
+            : _selectedCallName;
 
     // Supabase へ呼称を保存
     try {
@@ -350,8 +546,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         final client = ref.read(supabaseClientProvider);
         await client
             .from('users')
-            .update({'user_call_name': callName})
-            .eq('id', currentUser.id);
+            .update({'user_call_name': callName}).eq('id', currentUser.id);
       }
     } catch (_) {
       // 保存失敗してもオンボーディングは続行
@@ -372,7 +567,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               .scale(duration: 600.ms, curve: Curves.elasticOut),
           const SizedBox(height: 24),
           Text(
-            '지우との会話を始めよう',
+            '${_selectedCharacter.name}との会話を始めよう',
             style: Theme.of(context)
                 .textTheme
                 .headlineSmall
@@ -382,7 +577,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               .fadeIn(duration: 500.ms),
           const SizedBox(height: 8),
           Text(
-            '스크린에 연결 중... (接続中)',
+            '接続中...',
             style: Theme.of(context)
                 .textTheme
                 .bodyMedium
@@ -406,6 +601,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 300),
           child: switch (_step) {
+            _Step.languageSelect => _buildLanguageSelect(context),
             _Step.welcome => _buildWelcome(context),
             _Step.demoChat => _buildDemoChat(context),
             _Step.callName => _buildCallName(context),
@@ -418,13 +614,82 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 }
 
 // ────────────────────────────────────────────────
+// キャラクターカード
+// ────────────────────────────────────────────────
+class _CharacterCard extends StatelessWidget {
+  const _CharacterCard({
+    required this.character,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final _CharacterInfo character;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: 100,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppTheme.primary.withOpacity(0.15)
+              : AppTheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? AppTheme.primary : Colors.white12,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(character.flag, style: const TextStyle(fontSize: 32)),
+            const SizedBox(height: 8),
+            Text(
+              character.name,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: isSelected ? AppTheme.primary : Colors.white,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              character.language,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 10,
+                color: isSelected
+                    ? AppTheme.primary.withOpacity(0.8)
+                    : Colors.white38,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ────────────────────────────────────────────────
 // サブウィジェット
 // ────────────────────────────────────────────────
 
 class _DemoBubble extends StatelessWidget {
-  const _DemoBubble({required this.message, required this.isUser});
+  const _DemoBubble({
+    required this.message,
+    required this.isUser,
+    required this.characterFlag,
+  });
   final String message;
   final bool isUser;
+  final String characterFlag;
 
   @override
   Widget build(BuildContext context) {
@@ -438,23 +703,29 @@ class _DemoBubble extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.white12),
         ),
-        child: Text(message, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+        child: Text(message,
+            style: const TextStyle(color: Colors.white54, fontSize: 12)),
       );
     }
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
-        mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment:
+            isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isUser) ...[
-            const CircleAvatar(radius: 14, child: Text('🌸')),
+            CircleAvatar(
+                radius: 14,
+                child: Text(characterFlag,
+                    style: const TextStyle(fontSize: 12))),
             const SizedBox(width: 8),
           ],
           Flexible(
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
                 color: isUser ? AppTheme.primary : AppTheme.surface,
                 borderRadius: BorderRadius.only(
@@ -491,7 +762,8 @@ class _TypingIndicatorState extends State<_TypingIndicator>
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 900))
+    _ctrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 900))
       ..repeat();
   }
 
@@ -509,7 +781,8 @@ class _TypingIndicatorState extends State<_TypingIndicator>
         children: List.generate(3, (i) {
           final delay = i / 3;
           final t = (_ctrl.value - delay).clamp(0.0, 1.0);
-          final opacity = (0.3 + 0.7 * (t < 0.5 ? t * 2 : (1 - t) * 2)).clamp(0.3, 1.0);
+          final opacity =
+              (0.3 + 0.7 * (t < 0.5 ? t * 2 : (1 - t) * 2)).clamp(0.3, 1.0);
           return Container(
             margin: const EdgeInsets.symmetric(horizontal: 2),
             width: 6,
@@ -544,7 +817,8 @@ class _CallNameOption extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.primary.withOpacity(0.15) : AppTheme.surface,
+          color:
+              isSelected ? AppTheme.primary.withOpacity(0.15) : AppTheme.surface,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isSelected ? AppTheme.primary : Colors.white12,

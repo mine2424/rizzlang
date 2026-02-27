@@ -46,6 +46,12 @@ supabase db push
 
 # シードデータ投入（Season 1 Week 1 シナリオ + 지우キャラ）
 supabase db execute --file supabase/seeds/season1_week1.sql
+
+# 多言語キャラクターシード（Emma / Elif / Linh / Yasmin）
+supabase db execute --file supabase/seeds/characters_multilang.sql
+
+# 多言語シナリオシード（EN / TR / VI / AR — Season 1 Week 1）
+supabase db execute --file supabase/seeds/season1_week1_multilang.sql
 ```
 
 > `<project-ref>` は Supabase Dashboard URL の `https://supabase.com/dashboard/project/<project-ref>` 部分

@@ -50,10 +50,13 @@ class AIService {
   }
 
   /// 未認証ユーザー向けデモ返信（オンボーディング用）
-  Future<GeneratedReply> generateDemoReply(String userText) async {
+  Future<GeneratedReply> generateDemoReply(String userText, {String? characterId}) async {
     final response = await _supabase.functions.invoke(
       'generate-demo-reply',
-      body: {'userText': userText},
+      body: {
+        'userText': userText,
+        if (characterId != null) 'characterId': characterId,
+      },
     );
 
     if (response.status != 200) {
