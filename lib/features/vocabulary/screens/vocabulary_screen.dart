@@ -5,13 +5,34 @@ import '../../../core/models/vocabulary_model.dart';
 import '../../../core/theme/app_theme.dart';
 import '../providers/vocabulary_provider.dart';
 
-class VocabularyScreen extends ConsumerWidget {
+// ════════════════════════════════════════════════
+// VocabularyScreen — タブ付き語彙帳
+// ════════════════════════════════════════════════
+class VocabularyScreen extends ConsumerStatefulWidget {
   const VocabularyScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final filter = ref.watch(vocabFilterProvider);
-    final vocabAsync = ref.watch(vocabularyProvider);
+  ConsumerState<VocabularyScreen> createState() => _VocabularyScreenState();
+}
+
+class _VocabularyScreenState extends ConsumerState<VocabularyScreen>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final todayCount = ref.watch(todayVocabCountProvider).valueOrNull ?? 0;
     final dueCount = ref.watch(dueReviewCountProvider).valueOrNull ?? 0;
 
@@ -22,31 +43,43 @@ class VocabularyScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ── ヘッダー ──
-            _buildHeader(context, todayCount, dueCount),
+            _buildHeader(todayCount, dueCount),
 
-            // ── フィルタータブ ──
-            _buildFilterTabs(context, ref, filter, dueCount),
+            // ── タブバー ──
+            TabBar(
+              controller: _tabController,
+              indicatorColor: AppTheme.primary,
+              labelColor: AppTheme.primary,
+              unselectedLabelColor: Colors.white38,
+              tabs: const [
+                Tab(text: '全て'),
+                Tab(text: '今日の復習'),
+                Tab(text: '習得済み'),
+              ],
+            ),
 
-            // ── 語彙リスト ──
+            // ── タブビュー ──
             Expanded(
-              child: vocabAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(
-                  child: Text('読み込み失敗 :(', style: TextStyle(color: Colors.white54)),
-                ),
-                data: (vocabs) => vocabs.isEmpty
-                    ? _buildEmptyState(context, filter)
-                    : _buildVocabList(context, ref, vocabs),
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  // ── 全て ──
+                  _AllVocabTab(),
+                  // ── 今日の復習 ──
+                  _TodayReviewTab(),
+                  // ── 習得済み ──
+                  _MasteredTab(),
+                ],
               ),
             ),
           ],
         ),
       ),
 
-      // ── 復習開始 FAB ──
+      // ── 復習開始 FAB（全てタブのみ） ──
       floatingActionButton: dueCount > 0
           ? FloatingActionButton.extended(
-              onPressed: () => _startReview(context, ref),
+              onPressed: () => _startReview(),
               backgroundColor: AppTheme.primary,
               icon: const Icon(Icons.play_arrow_rounded),
               label: Text('復習する ($dueCount件)'),
@@ -58,15 +91,15 @@ class VocabularyScreen extends ConsumerWidget {
   // ────────────────────────────────────────────────
   // ヘッダー
   // ────────────────────────────────────────────────
-  Widget _buildHeader(BuildContext context, int todayCount, int dueCount) {
+  Widget _buildHeader(int todayCount, int dueCount) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Text('📚', style: const TextStyle(fontSize: 28)),
+              const Text('📚', style: TextStyle(fontSize: 28)),
               const SizedBox(width: 10),
               Text(
                 '語彙帳',
@@ -77,7 +110,6 @@ class VocabularyScreen extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 14),
-          // 統計バッジ
           Row(
             children: [
               _StatBadge(
@@ -100,97 +132,16 @@ class VocabularyScreen extends ConsumerWidget {
   }
 
   // ────────────────────────────────────────────────
-  // フィルタータブ
-  // ────────────────────────────────────────────────
-  Widget _buildFilterTabs(
-    BuildContext context,
-    WidgetRef ref,
-    VocabFilter filter,
-    int dueCount,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
-      child: Row(
-        children: [
-          _FilterChip(
-            label: 'すべて',
-            isSelected: filter == VocabFilter.all,
-            onTap: () => ref.read(vocabFilterProvider.notifier).state = VocabFilter.all,
-          ),
-          const SizedBox(width: 8),
-          _FilterChip(
-            label: '今日',
-            isSelected: filter == VocabFilter.today,
-            onTap: () => ref.read(vocabFilterProvider.notifier).state = VocabFilter.today,
-          ),
-          const SizedBox(width: 8),
-          _FilterChip(
-            label: '復習期限 ${dueCount > 0 ? "($dueCount)" : ""}',
-            isSelected: filter == VocabFilter.dueReview,
-            onTap: () => ref.read(vocabFilterProvider.notifier).state = VocabFilter.dueReview,
-            badgeCount: dueCount,
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ────────────────────────────────────────────────
-  // 語彙リスト
-  // ────────────────────────────────────────────────
-  Widget _buildVocabList(BuildContext context, WidgetRef ref, List<VocabularyModel> vocabs) {
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
-      itemCount: vocabs.length,
-      itemBuilder: (ctx, i) => _VocabCard(vocab: vocabs[i])
-          .animate(delay: (i * 40).ms)
-          .fadeIn(duration: 250.ms)
-          .slideX(begin: 0.05, end: 0),
-    );
-  }
-
-  // ────────────────────────────────────────────────
-  // 空状態
-  // ────────────────────────────────────────────────
-  Widget _buildEmptyState(BuildContext context, VocabFilter filter) {
-    final messages = {
-      VocabFilter.all: ('📖', 'まだ語彙がありません', 'チャットで韓国語を話すと\n自動で語彙帳に追加されます'),
-      VocabFilter.today: ('☀️', '今日の語彙はまだありません', '지우と話して新しい表現を覚えよう'),
-      VocabFilter.dueReview: ('✅', '復習は全て完了！', 'またいつか復習が来たら教えるね'),
-    };
-    final (emoji, title, sub) = messages[filter]!;
-
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(emoji, style: const TextStyle(fontSize: 56)).animate().scale(
-                duration: 400.ms,
-                curve: Curves.elasticOut,
-              ),
-          const SizedBox(height: 16),
-          Text(title,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-          const SizedBox(height: 8),
-          Text(sub,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white38, height: 1.6)),
-        ],
-      ),
-    );
-  }
-
-  // ────────────────────────────────────────────────
   // 復習セッション開始
   // ────────────────────────────────────────────────
-  void _startReview(BuildContext context, WidgetRef ref) async {
+  Future<void> _startReview() async {
     final dueVocabs = await ref.read(
       vocabularyProvider.selectAsync(
         (all) => all.where((v) => v.nextReview.isBefore(DateTime.now())).toList(),
       ),
     );
 
-    if (!context.mounted || dueVocabs.isEmpty) return;
+    if (!mounted || dueVocabs.isEmpty) return;
 
     await showModalBottomSheet(
       context: context,
@@ -199,10 +150,124 @@ class VocabularyScreen extends ConsumerWidget {
       builder: (_) => _ReviewSession(vocabs: dueVocabs),
     );
 
-    // 復習完了後にリフレッシュ
     ref.invalidate(vocabularyProvider);
     ref.invalidate(dueReviewCountProvider);
+    ref.invalidate(todayReviewProvider);
   }
+}
+
+// ════════════════════════════════════════════════
+// タブ: 全て
+// ════════════════════════════════════════════════
+class _AllVocabTab extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final vocabAsync = ref.watch(vocabularyProvider);
+    return vocabAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(
+        child: Text('読み込み失敗 :(', style: const TextStyle(color: Colors.white54)),
+      ),
+      data: (vocabs) => vocabs.isEmpty
+          ? _buildEmptyState(
+              '📖',
+              'まだ語彙がありません',
+              'チャットで韓国語を話すと\n自動で語彙帳に追加されます',
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+              itemCount: vocabs.length,
+              itemBuilder: (ctx, i) => _VocabCard(vocab: vocabs[i])
+                  .animate(delay: (i * 40).ms)
+                  .fadeIn(duration: 250.ms)
+                  .slideX(begin: 0.05, end: 0),
+            ),
+    );
+  }
+}
+
+// ════════════════════════════════════════════════
+// タブ: 今日の復習
+// ════════════════════════════════════════════════
+class _TodayReviewTab extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final reviewAsync = ref.watch(todayReviewProvider);
+    return reviewAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(
+        child: Text('読み込み失敗 :(', style: const TextStyle(color: Colors.white54)),
+      ),
+      data: (vocabs) => vocabs.isEmpty
+          ? _buildEmptyState(
+              '🎉',
+              '今日の復習はありません',
+              'すべて覚えています！',
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+              itemCount: vocabs.length,
+              itemBuilder: (ctx, i) => _VocabCard(vocab: vocabs[i])
+                  .animate(delay: (i * 40).ms)
+                  .fadeIn(duration: 250.ms)
+                  .slideX(begin: 0.05, end: 0),
+            ),
+    );
+  }
+}
+
+// ════════════════════════════════════════════════
+// タブ: 習得済み（reviewCount >= 5 を「習得済み」とする）
+// ════════════════════════════════════════════════
+class _MasteredTab extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final vocabAsync = ref.watch(vocabularyProvider);
+    return vocabAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(
+        child: Text('読み込み失敗 :(', style: const TextStyle(color: Colors.white54)),
+      ),
+      data: (vocabs) {
+        final mastered = vocabs.where((v) => v.reviewCount >= 5).toList();
+        return mastered.isEmpty
+            ? _buildEmptyState(
+                '🌱',
+                'まだ習得済みの語彙がありません',
+                '復習を重ねて語彙をマスターしよう！',
+              )
+            : ListView.builder(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+                itemCount: mastered.length,
+                itemBuilder: (ctx, i) => _VocabCard(vocab: mastered[i])
+                    .animate(delay: (i * 40).ms)
+                    .fadeIn(duration: 250.ms)
+                    .slideX(begin: 0.05, end: 0),
+              );
+      },
+    );
+  }
+}
+
+Widget _buildEmptyState(String emoji, String title, String sub) {
+  return Center(
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(emoji, style: const TextStyle(fontSize: 56)).animate().scale(
+              duration: 400.ms,
+              curve: Curves.elasticOut,
+            ),
+        const SizedBox(height: 16),
+        Text(title,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        const SizedBox(height: 8),
+        Text(sub,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.white38, height: 1.6)),
+      ],
+    ),
+  );
 }
 
 // ════════════════════════════════════════════════

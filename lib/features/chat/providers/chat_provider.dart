@@ -6,7 +6,6 @@ import '../../../core/models/message_model.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/character_provider.dart';
 import '../../../core/services/ai_service.dart';
-import '../../vocabulary/providers/vocabulary_provider.dart';
 
 /// copyWith で nullable フィールドを null クリアするためのセンチネルクラス
 class _Undefined {
@@ -322,6 +321,15 @@ class ChatNotifier extends StateNotifier<ChatState> {
         // シナリオ情報
         scenarioDay: reply.scenarioDay ?? state.scenarioDay,
       );
+
+      // reviewedWords → SM-2 自動更新
+      if (reply.reviewedWords.isNotEmpty) {
+        for (final word in reply.reviewedWords) {
+          try {
+            await _reviewWord(word, grade: 3);
+          } catch (_) {}
+        }
+      }
     } on AIServiceException catch (e) {
       if (e.statusCode == 429) {
         state = state.copyWith(
@@ -338,6 +346,46 @@ class ChatNotifier extends StateNotifier<ChatState> {
         );
       }
     }
+  }
+
+  /// SM-2 アルゴリズムで復習語彙の next_review_at を更新
+  Future<void> _reviewWord(String word, {required int grade}) async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return;
+
+    final existing = await _supabase
+        .from('user_vocabulary')
+        .select('ease_factor, repetitions, interval_days')
+        .eq('user_id', userId)
+        .eq('word', word)
+        .maybeSingle();
+
+    if (existing == null) return;
+
+    final ef = ((existing['ease_factor'] ?? existing['easiness_factor']) as num).toDouble();
+    final reps = (existing['repetitions'] as int?) ?? 0;
+    final newEf = (ef + 0.1 - (5 - grade) * (0.08 + (5 - grade) * 0.02)).clamp(1.3, 2.5);
+    final newReps = reps + 1;
+    final intervalDays = ((existing['interval_days'] ?? 1) as num).toDouble();
+    final newInterval = newReps == 1
+        ? 1
+        : newReps == 2
+            ? 6
+            : (intervalDays * newEf).round();
+    final nextReview =
+        DateTime.now().add(Duration(days: newInterval)).toIso8601String();
+
+    await _supabase
+        .from('user_vocabulary')
+        .update({
+          'ease_factor': newEf,
+          'repetitions': newReps,
+          'interval_days': newInterval,
+          'next_review_at': nextReview,
+          'last_reviewed_at': DateTime.now().toIso8601String(),
+        })
+        .eq('user_id', userId)
+        .eq('word', word);
   }
 
   /// エラー時にリトライ

@@ -168,3 +168,77 @@ final reviewNotifierProvider =
     StateNotifierProvider.family<ReviewNotifier, ReviewState, List<VocabularyModel>>(
   (ref, queue) => ReviewNotifier(ref.watch(supabaseClientProvider), queue),
 );
+
+// ────────────────────────────────────────────────
+// 今日の復習 Provider（弱点フォーカス復習）
+// ────────────────────────────────────────────────
+final todayReviewProvider = FutureProvider<List<VocabularyModel>>((ref) async {
+  final supabase = ref.watch(supabaseClientProvider);
+  final uid = supabase.auth.currentUser?.id;
+  if (uid == null) return [];
+
+  final data = await supabase
+      .from('user_vocabulary')
+      .select()
+      .eq('user_id', uid)
+      .lte('next_review_at', DateTime.now().toIso8601String())
+      .order('easiness_factor', ascending: true);
+
+  return (data as List)
+      .map((e) => VocabularyModel.fromJson(e as Map<String, dynamic>))
+      .toList();
+});
+
+// ────────────────────────────────────────────────
+// VocabularyNotifier（reviewWord 用）
+// ────────────────────────────────────────────────
+class VocabularyNotifier {
+  final SupabaseClient _supabase;
+
+  VocabularyNotifier(this._supabase);
+
+  /// SM-2 アルゴリズムで復習語彙の next_review_at を更新
+  /// grade: 0-5 (3 = 「わかった！」)
+  Future<void> reviewWord(String word, {required int grade}) async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return;
+
+    final existing = await _supabase
+        .from('user_vocabulary')
+        .select('ease_factor, repetitions, interval_days')
+        .eq('user_id', userId)
+        .eq('word', word)
+        .maybeSingle();
+
+    if (existing == null) return;
+
+    final ef = ((existing['ease_factor'] ?? existing['easiness_factor']) as num).toDouble();
+    final reps = (existing['repetitions'] as int?) ?? 0;
+    final newEf = (ef + 0.1 - (5 - grade) * (0.08 + (5 - grade) * 0.02)).clamp(1.3, 2.5);
+    final newReps = reps + 1;
+    final intervalDays = ((existing['interval_days'] ?? 1) as num).toDouble();
+    final newInterval = newReps == 1
+        ? 1
+        : newReps == 2
+            ? 6
+            : (intervalDays * newEf).round();
+    final nextReview =
+        DateTime.now().add(Duration(days: newInterval)).toIso8601String();
+
+    await _supabase
+        .from('user_vocabulary')
+        .update({
+          'ease_factor': newEf,
+          'repetitions': newReps,
+          'interval_days': newInterval,
+          'next_review_at': nextReview,
+          'last_reviewed_at': DateTime.now().toIso8601String(),
+        })
+        .eq('user_id', userId)
+        .eq('word', word);
+  }
+}
+
+final vocabularyNotifierProvider = Provider<VocabularyNotifier>((ref) {
+  return VocabularyNotifier(ref.watch(supabaseClientProvider));
+});
