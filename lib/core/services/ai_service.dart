@@ -14,6 +14,9 @@ class AIService {
 
   AIService(this._supabase);
 
+  // ── 文法解説メモリキャッシュ（セッション中有効） ──
+  final Map<String, GrammarExplanation> _grammarCache = {};
+
   /// ユーザーの日本語入力からキャラクターの返信・解説を生成（多言語対応）
   Future<GeneratedReply> generateReply({
     required String userText,
@@ -71,6 +74,7 @@ class AIService {
     required String userText,
     required String language,
     String? contextMessage,
+    String? characterId,
   }) async {
     final response = await _supabase.functions.invoke(
       'check-writing',
@@ -78,6 +82,7 @@ class AIService {
         'userText': userText,
         'language': language,
         if (contextMessage != null) 'contextMessage': contextMessage,
+        if (characterId != null) 'characterId': characterId,
       },
     );
 
@@ -89,6 +94,38 @@ class AIService {
     }
 
     return WritingCheckResult.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  /// フレーズの文法を詳細解説（メモリキャッシュ付き）
+  Future<GrammarExplanation> explainGrammar({
+    required String phrase,
+    required String why,
+    required String language,
+  }) async {
+    final cacheKey = '$language:$phrase';
+    if (_grammarCache.containsKey(cacheKey)) {
+      return _grammarCache[cacheKey]!;
+    }
+
+    final response = await _supabase.functions.invoke(
+      'explain-grammar',
+      body: {
+        'phrase': phrase,
+        'why': why,
+        'language': language,
+      },
+    );
+
+    if (response.status != 200) {
+      throw AIServiceException(
+        '文法解説の取得に失敗しました。',
+        statusCode: response.status,
+      );
+    }
+
+    final result = GrammarExplanation.fromJson(response.data as Map<String, dynamic>);
+    _grammarCache[cacheKey] = result;
+    return result;
   }
 }
 
@@ -139,6 +176,51 @@ class WritingError {
       original: json['original'] as String? ?? '',
       corrected: json['corrected'] as String? ?? '',
       explanation: json['explanation'] as String? ?? '',
+    );
+  }
+}
+
+// ────────────────────────────────────────────────
+// 文法解説モデル
+// ────────────────────────────────────────────────
+class GrammarExplanation {
+  final String title;
+  final String level;       // 'beginner' | 'intermediate' | 'advanced'
+  final String pattern;
+  final String explanation;
+  final List<GrammarExample> examples;
+
+  const GrammarExplanation({
+    required this.title,
+    required this.level,
+    required this.pattern,
+    required this.explanation,
+    required this.examples,
+  });
+
+  factory GrammarExplanation.fromJson(Map<String, dynamic> json) {
+    return GrammarExplanation(
+      title: json['title'] as String? ?? '',
+      level: json['level'] as String? ?? 'beginner',
+      pattern: json['pattern'] as String? ?? '',
+      explanation: json['explanation'] as String? ?? '',
+      examples: (json['examples'] as List<dynamic>? ?? [])
+          .map((e) => GrammarExample.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+}
+
+class GrammarExample {
+  final String foreign;
+  final String japanese;
+
+  const GrammarExample({required this.foreign, required this.japanese});
+
+  factory GrammarExample.fromJson(Map<String, dynamic> json) {
+    return GrammarExample(
+      foreign: json['foreign'] as String? ?? '',
+      japanese: json['japanese'] as String? ?? '',
     );
   }
 }

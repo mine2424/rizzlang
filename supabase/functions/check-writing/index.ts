@@ -51,8 +51,10 @@ serve(async (req: Request) => {
       })
     }
 
+    const userId = user.id
+
     // ── リクエストボディ ──
-    const { userText, language, contextMessage } = await req.json()
+    const { userText, language, contextMessage, characterId } = await req.json()
 
     if (!userText || !language) {
       return new Response(
@@ -137,6 +139,59 @@ ${contextMessage ? `会話の文脈: "${contextMessage}"` : ''}
         score: 70,
         praise: '挑戦することが大切です！',
         tip: '引き続き練習しましょう',
+      }
+    }
+
+    const { corrected, errors, score, praise, tip } = result
+
+    // ── 1-1: 添削履歴を conversations テーブルに保存 ──
+    const defaultCharacterId = 'c1da0000-0000-0000-0000-000000000001'
+    try {
+      await supabase.from('conversations').insert([
+        {
+          user_id: userId,
+          character_id: characterId ?? defaultCharacterId,
+          role: 'user',
+          content: userText,
+          message_type: 'writing_check',
+          metadata: { score, errors: errors.length },
+        },
+        {
+          user_id: userId,
+          character_id: characterId ?? defaultCharacterId,
+          role: 'assistant',
+          content: corrected,
+          message_type: 'writing_check_result',
+          metadata: { score, praise, tip },
+        },
+      ])
+    } catch (saveErr) {
+      // 保存失敗はログのみ（レスポンスには影響させない）
+      console.error('Failed to save writing check history:', saveErr)
+    }
+
+    // ── 1-2: 添削エラー語彙を user_vocabulary に upsert ──
+    if (errors.length > 0 && characterId) {
+      try {
+        const nextReviewAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        const vocabItems = errors.map((e) => ({
+          user_id: userId,
+          character_id: characterId,
+          word: e.corrected,
+          meaning: e.explanation,
+          source: 'writing_check',
+          ease_factor: 2.5,
+          repetitions: 0,
+          interval_days: 1,
+          next_review_at: nextReviewAt,
+        }))
+
+        await supabase.from('user_vocabulary').upsert(vocabItems, {
+          onConflict: 'user_id,character_id,word',
+          ignoreDuplicates: true,
+        })
+      } catch (vocabErr) {
+        console.error('Failed to upsert vocabulary:', vocabErr)
       }
     }
 

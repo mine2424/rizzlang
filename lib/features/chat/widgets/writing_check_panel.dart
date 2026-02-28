@@ -1,14 +1,45 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/providers/auth_provider.dart';
 import '../../../core/services/ai_service.dart';
+import '../../../core/services/revenue_cat_service.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../paywall/paywall_sheet.dart';
 
-class WritingCheckPanel extends StatelessWidget {
+// ────────────────────────────────────────────────
+// 今日の添削残り回数プロバイダー（Free ユーザー向け）
+// ────────────────────────────────────────────────
+final writingCheckUsageProvider = FutureProvider<int>((ref) async {
+  final supabase = ref.watch(supabaseClientProvider);
+  final userId = supabase.auth.currentUser?.id;
+  if (userId == null) return 5;
+
+  final today = DateTime.now().toIso8601String().split('T')[0];
+  try {
+    final result = await supabase
+        .from('conversations')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('message_type', 'writing_check')
+        .gte('created_at', '${today}T00:00:00Z');
+
+    final used = (result as List).length;
+    return (5 - used).clamp(0, 5);
+  } catch (_) {
+    return 5;
+  }
+});
+
+// ────────────────────────────────────────────────
+// WritingCheckPanel
+// ────────────────────────────────────────────────
+class WritingCheckPanel extends ConsumerWidget {
   const WritingCheckPanel({super.key, required this.result});
   final WritingCheckResult result;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.surface,
@@ -19,6 +50,9 @@ class WritingCheckPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ── 残り回数バナー（Free ユーザー・残り3回以下） ──
+          _UsageCounterBanner(),
+
           // ── タイトルバー ──
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
@@ -240,6 +274,69 @@ class WritingCheckPanel extends StatelessWidget {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+// ────────────────────────────────────────────────
+// 残り回数バナー（Consumer で Pro ステータス + 使用量を監視）
+// ────────────────────────────────────────────────
+class _UsageCounterBanner extends ConsumerWidget {
+  const _UsageCounterBanner();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isPro = ref.watch(proStatusProvider).valueOrNull ?? false;
+    final remaining = ref.watch(writingCheckUsageProvider).valueOrNull ?? 5;
+
+    // Pro ユーザーまたは残り回数が余裕がある場合は表示しない
+    if (isPro || remaining > 3) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: remaining == 0 ? AppTheme.tensionBg : AppTheme.primaryGlow,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: remaining == 0
+              ? AppTheme.tension.withOpacity(0.3)
+              : AppTheme.borderGlow,
+        ),
+      ),
+      child: Row(
+        children: [
+          Text(
+            remaining == 0 ? '⚠' : '📝',
+            style: const TextStyle(fontSize: 13),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              remaining == 0
+                  ? '今日の添削上限に達しました。Proで無制限に。'
+                  : '今日あと $remaining 回添削できます（Freeプラン）',
+              style: TextStyle(
+                fontSize: 11.5,
+                color: remaining == 0 ? AppTheme.tension : AppTheme.primary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          if (remaining == 0)
+            GestureDetector(
+              onTap: () => showPaywallSheet(context),
+              child: Text(
+                'Pro →',
+                style: TextStyle(
+                  fontSize: 11.5,
+                  color: AppTheme.primary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
         ],
       ),
     );
