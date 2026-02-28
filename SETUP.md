@@ -47,11 +47,17 @@ supabase db push
 # シードデータ投入（Season 1 Week 1 シナリオ + 지우キャラ）
 supabase db execute --file supabase/seeds/season1_week1.sql
 
+# Korean Season 1 Week 2〜4
+supabase db execute --file supabase/seeds/season1_week2_ko.sql
+supabase db execute --file supabase/seeds/season1_week3_ko.sql
+supabase db execute --file supabase/seeds/season1_week4_ko.sql
+
 # 多言語キャラクターシード（Emma / Elif / Linh / Yasmin）
 supabase db execute --file supabase/seeds/characters_multilang.sql
 
-# 多言語シナリオシード（EN / TR / VI / AR — Season 1 Week 1）
+# 多言語シナリオシード（EN / TR / VI / AR — Season 1 Week 1〜2）
 supabase db execute --file supabase/seeds/season1_week1_multilang.sql
+supabase db execute --file supabase/seeds/season1_week2_multilang.sql
 ```
 
 > `<project-ref>` は Supabase Dashboard URL の `https://supabase.com/dashboard/project/<project-ref>` 部分
@@ -61,6 +67,9 @@ supabase db execute --file supabase/seeds/season1_week1_multilang.sql
 ```bash
 supabase functions deploy generate-reply
 supabase functions deploy generate-demo-reply
+supabase functions deploy check-writing
+supabase functions deploy explain-grammar
+supabase functions deploy memory-generator
 supabase functions deploy difficulty-updater
 supabase functions deploy fcm-scheduler
 supabase functions deploy revenuecat-webhook
@@ -271,6 +280,19 @@ SELECT cron.schedule(
   );
   $$
 );
+
+-- memory-generator: 毎週月曜 0:00 JST (= UTC 15:00 日曜)
+-- 先週の会話を AI サマリー化して relationship_memories に保存
+SELECT cron.schedule(
+  'memory-generator-weekly',
+  '0 15 * * 0',
+  $$
+  SELECT net.http_post(
+    url := current_setting('app.supabase_url') || '/functions/v1/memory-generator',
+    headers := '{"Authorization": "Bearer ' || current_setting('app.service_role_key') || '"}'::jsonb
+  );
+  $$
+);
 ```
 
 > **注意**: Supabase の Cron は UTC 基準。JST 9:00 = UTC 0:00。
@@ -334,11 +356,11 @@ flutter build appbundle \
 ### Supabase
 - [ ] Supabase プロジェクト作成
 - [ ] `supabase link` でローカルと紐付け
-- [ ] `supabase db push` でマイグレーション適用
-- [ ] シードデータ投入 (`season1_week1.sql`)
-- [ ] Edge Functions 5本デプロイ完了
+- [ ] `supabase db push` でマイグレーション 8本適用
+- [ ] シードデータ 7本投入（season1_week1〜4_ko / characters_multilang / season1_week1〜2_multilang）
+- [ ] Edge Functions **8本**デプロイ完了（generate-reply / generate-demo-reply / check-writing / explain-grammar / memory-generator / difficulty-updater / fcm-scheduler / revenuecat-webhook）
 - [ ] Secrets 3種設定完了 (`GEMINI_API_KEY` / `REVENUECAT_WEBHOOK_SECRET` / `FIREBASE_SERVICE_ACCOUNT_JSON`)
-- [ ] pg_cron 有効化 + Cron 2本設定
+- [ ] pg_cron 有効化 + Cron **3本**設定（difficulty-updater / fcm-daily-reminder / memory-generator-weekly）
 
 ### Firebase
 - [ ] Firebase プロジェクト作成

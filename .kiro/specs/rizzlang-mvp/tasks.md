@@ -175,15 +175,25 @@
 
 ---
 
+---
+
+## コード実装 完了宣言
+
+**2026-02-28 時点でコード実装タスクは全て完了。**
+残るのは Ryota 手動の外部サービス設定のみ。
+
+---
+
 ## コミット履歴
 
 | ハッシュ | 内容 |
 |---------|------|
-| (次) | design: refined UI/UX system — Emotional Dark theme ← **最新** |
-| `1300ef0` | docs: update tasks.md Phase B |
-| `79dbd43` | feat: multi-language support (8 languages, 5 characters) |
+| `d93637d` | feat: Phase 2 complete — writing history, grammar cache, TTS settings ← **最新** |
+| `63bde87` | design: refined UI/UX system — Emotional Dark theme |
+| `00026dc` | docs: design system preview + rationale |
+| `c2ce533` | feat: AI relationship memory + weakness review |
+| `1762ccc` | feat: AI pronunciation guide + TTS |
+| `991d508` | docs: kiro specs for 6 AI features |
+| `67dc9bd` | feat: multilang content + onboarding i18n |
+| `79dbd43` | feat: multi-language support (5 characters) |
 | `50ee7e4` | fix: static analysis + code quality |
-| `e034e61` | fix: resolve all TODO items + polish |
-| `093fa37` | test: E2E + VRT golden + CI |
-| `be4dc7d` | feat: remaining tasks (4.4/5.4/7.1/8.1) |
-| `0b40b64` | docs: SETUP.md |

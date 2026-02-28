@@ -12,7 +12,8 @@
 
 韓国語・英語などを「感情が動く文脈」で学ぶ。教科書じゃなく、AIキャラとの疑似恋愛LINEで。
 
-**Gotchaモーメント：**
+**Gotcha モーメント:**
+
 ```
 지우: "오빠, 오늘 뭐 했어? 🥺 나 보고 싶었어~"
 
@@ -24,248 +25,212 @@
 
 ---
 
+## 🌍 対応言語 & キャラクター
+
+| キャラクター | 言語 | プロフィール | プラン |
+|---|---|---|---|
+| 지우 (ジウ) 🇰🇷 | Korean | Seoul 25F · K-pop大好き | Free / Pro |
+| Emma 🇺🇸 | English | NYU 23F · Gen Z American | Pro |
+| Elif 🇹🇷 | Turkish | İstanbul 23F · 情熱的 | Pro |
+| Linh 🇻🇳 | Vietnamese | Hà Nội 24F · 詩が好き | Pro |
+| Yasmin 🇸🇦 | Arabic | Dubai 25F · Modern Arab | Pro |
+
+---
+
 ## 🏗 技術スタック
 
 | Layer | 技術 |
 |---|---|
-| モバイルアプリ | Flutter 3.19 (Dart) |
-| 状態管理 | Riverpod 2 |
-| ナビゲーション | GoRouter |
-| バックエンド/DB | Supabase (PostgreSQL + RLS) |
-| 認証 | Supabase Auth (Google / Apple) |
-| AI生成 | Gemini 1.5 Flash（Supabase Edge Functions経由）|
-| 課金 | RevenueCat (App Store / Google Play IAP) |
-| 通知 | Firebase Cloud Messaging (FCM) |
+| Mobile | Flutter 3.19 (iOS / Android) |
+| State | Riverpod 2.x + Freezed 3.0 |
+| Navigation | GoRouter |
+| Backend | Supabase (PostgreSQL + Edge Functions) |
+| AI | Gemini 1.5 Flash (無料枠) |
+| 課金 | RevenueCat (IAP) |
+| Push | Firebase Cloud Messaging |
+| TTS | flutter_tts (デバイス側・コスト0) |
 
 ---
 
-## 📁 プロジェクト構成
+## ✨ 主要機能
+
+### 💬 AIチャット
+- シナリオ連動の System Prompt (Season × Week × Day × 時間帯)
+- 返信 + 解説(why) + スラング + 次のセリフを1回のAPI呼び出しで生成
+- 難易度自動変動 (Level 1-4、週次 SM-2 ベース)
+- Tension 2フェーズシステム (friction → reconciliation → 関係値+1)
+
+### 📝 AI添削モード（Writing Check）
+- 外国語で直接書いてAIがスコア付き添削
+- エラー箇所・修正・理由を日本語で解説
+- Free: 5回/日、Pro: 無制限
+
+### 🧠 AI文法詳細解説
+- ReplyPanelの「詳しく解説→」から文法を深掘り
+- 文法名・パターン・例文3つ・レベルバッジ
+- メモリキャッシュで同一フレーズは再API呼び出し不要
+
+### 🔊 キャラクター TTS
+- メッセージ長押し → ネイティブ発音再生
+- デバイスOSのTTSエンジン使用（サーバーコスト0）
+- 速度3段階設定 (ゆっくり/標準/速い)
+
+### 🧩 AI関係値メモリ
+- 週次で会話をAIサマリー化 → 翌週の会話に「記憶」として注入
+- キャラが「先週のこと、覚えてるよ」と自然に言及
+
+### 🎯 AI弱点フォーカス復習
+- SM-2スケジュールの「今日の復習対象語彙」を会話に自然に埋め込む
+- 会話で出てきた語彙を自動SM-2更新
+
+### 📖 語彙帳 + SRS
+- 会話から自動収集
+- SM-2アルゴリズムで復習タイミングを最適化
+- 「全て / 今日の復習 / 習得済み」3タブ
+
+### 🔥 ストリーク & XP
+- 7日連続表示 + XPプログレスバー
+- マイルストーン通知 (7/30/100日)
+
+### 🌸 発音ガイド
+- メッセージ長押し → ローマ字読み + カタカナ近似
+- 韓国語: Revised Romanization (RR方式)
+- ベトナム語: 6声調ガイド付き
+
+---
+
+## 🗂 プロジェクト構造
 
 ```
-lib/
-├── main.dart                    # エントリーポイント
-├── app.dart                     # MaterialApp + GoRouter
-├── core/
-│   ├── models/                  # Freezed イミュータブルモデル
-│   │   ├── user_model.dart
-│   │   ├── message_model.dart
-│   │   ├── scenario_model.dart
-│   │   └── vocabulary_model.dart
-│   ├── services/
-│   │   ├── ai_service.dart      # Gemini API (Edge Function経由)
-│   │   └── env.dart             # 環境変数
-│   ├── providers/
-│   │   └── auth_provider.dart   # Supabase Auth
-│   └── theme/
-│       └── app_theme.dart       # ダークテーマ
-└── features/
-    ├── auth/screens/            # Login / Onboarding
-    ├── chat/
-    │   ├── screens/chat_screen.dart   # メインチャット画面
-    │   ├── providers/chat_provider.dart
-    │   └── widgets/             # MessageBubble / ReplyPanel / StreakBar
-    ├── vocabulary/screens/      # 語彙帳
-    ├── home/                    # BottomNav ShellRoute
-    └── settings/
-
-supabase/
-├── migrations/
-│   └── 20260226_init.sql        # 完全なDBスキーマ + RLS
-└── functions/
-    ├── generate-reply/          # Gemini 1.5 Flash 本番用
-    └── generate-demo-reply/     # オンボーディング用（認証不要）
+rizzlang/
+├── lib/
+│   ├── core/
+│   │   ├── models/          # Freezed モデル
+│   │   ├── providers/       # Riverpod プロバイダー
+│   │   ├── services/        # AI / TTS / RevenueCat / FCM
+│   │   ├── theme/           # AppTheme (Emotional Dark)
+│   │   └── utils/           # KoreanRomanizer / VietnameseToneGuide
+│   ├── features/
+│   │   ├── auth/            # Login / Onboarding (言語選択付き)
+│   │   ├── chat/            # Chat / ReplyPanel / WritingCheck / GrammarExplain
+│   │   ├── language/        # Language Select Screen
+│   │   ├── paywall/         # Paywall Sheet
+│   │   ├── settings/        # Settings / RelationshipMemories
+│   │   └── vocabulary/      # Vocabulary + SRS
+│   └── app.dart             # GoRouter 定義
+├── supabase/
+│   ├── functions/           # 9本のEdge Functions
+│   ├── migrations/          # 8本のマイグレーション
+│   └── seeds/               # 7本のシードファイル
+├── test/                    # Unit / Widget / Golden / E2E
+├── docs/
+│   ├── DESIGN_RATIONALE.md  # 設計根拠ドキュメント
+│   ├── TESTING.md           # テスト戦略
+│   └── design-preview/      # UIプレビュー (HTML)
+├── .kiro/specs/             # 7本の設計スペック
+├── SETUP.md                 # 環境構築手順
+└── Makefile
 ```
 
 ---
 
-## 🚀 開発セットアップ
+## 🚀 Supabase Edge Functions
 
-### 前提
-- Flutter 3.19+
-- Supabase CLI (`brew install supabase/tap/supabase`)
-- Docker Desktop（Supabase エミュレータに必要）
-- Dart 3.3+
+| Function | 用途 |
+|---|---|
+| `generate-reply` | メインのAI返信生成（メモリ注入 + 弱点語彙注入） |
+| `generate-demo-reply` | 未認証オンボーディング用デモ（5言語対応） |
+| `check-writing` | AI添削（スコア + エラー + 語彙保存） |
+| `explain-grammar` | 文法詳細解説（タイトル/パターン/例文3つ） |
+| `memory-generator` | 週次会話サマリー生成（Cron: 月曜 15:00 UTC） |
+| `difficulty-updater` | 難易度自動変動（Cron: 月曜 0:00 UTC） |
+| `fcm-scheduler` | Push通知スケジューラ（Cron: 毎日 0:00 UTC） |
+| `revenuecat-webhook` | 購入イベント処理 |
 
 ---
 
-### ⚡ 即起動（推奨）
+## 🗄 DB マイグレーション順序
 
 ```bash
-git clone https://github.com/mine2424/rizzlang.git
-cd rizzlang
-./scripts/setup-local.sh   # または: make setup
+supabase db push  # 以下を順番に適用
+
+20260226_init.sql              # テーブル初期定義
+20260226_user_trigger.sql      # 新規ユーザートリガー
+20260226_tension_phase.sql     # Tensionカラム追加
+20260226_indexes.sql           # パフォーマンスインデックス
+20260227_multilang.sql         # 多言語対応 (user_characters等)
+20260228_relationship_memories.sql  # 関係値メモリテーブル
+20260228_vocabulary_index.sql  # 弱点語彙クエリ最適化
+20260228_conversations_type.sql     # 添削履歴用カラム追加
 ```
 
-これだけで以下が全部完了：
-1. Flutter 依存インストール
-2. Supabase ローカルエミュレータ起動
-3. DB マイグレーション適用
-4. シードデータ投入（テストユーザー + シナリオ Week 1 + 語彙帳サンプル）
-
----
-
-### 🖥 シミュレータ / エミュレータで確認
+## 🌱 シード適用順序
 
 ```bash
-make run
-```
-
-ログイン画面に **「⚡ テストユーザーでログイン」** ボタンが表示される（デバッグビルドのみ）。
-タップするだけで即 `test@rizzlang.local / test1234` でログインできる。
-
----
-
-### 📱 物理デバイスで確認（iOS/Android 実機）
-
-```bash
-make local-ip          # Mac の LAN IP を確認
-make run-device        # 自動検出した IP で起動
-# または
-make run-device LOCAL_HOST=192.168.x.x
-```
-
-> 物理デバイスと Mac が同じ Wi-Fi に接続している必要があります。
-
----
-
-### 🛠 便利コマンド
-
-| コマンド | 説明 |
-|---------|------|
-| `make local-start` | エミュレータ起動 + DB リセット |
-| `make local-stop` | エミュレータ停止 |
-| `make local-reset` | DB リセット（シード再適用） |
-| `make functions-serve` | Edge Functions をローカルで起動 |
-| `make run` | Flutter 起動（シミュレータ） |
-| `make run-device` | Flutter 起動（物理デバイス） |
-| `make test` | テスト全実行 |
-| `make build-ios` | iOS リリースビルド |
-| `make build-android` | Android リリースビルド |
-
----
-
-### 🌐 ローカル環境 URL
-
-| サービス | URL |
-|---------|-----|
-| Supabase Studio | http://127.0.0.1:54323 |
-| API Endpoint | http://127.0.0.1:54321 |
-| メール確認（Auth） | http://127.0.0.1:54324 |
-
----
-
-### ⚙️ VS Code デバッグ設定
-
-`.vscode/launch.json` に4種類の設定を用意済み：
-
-| 設定 | 説明 |
-|------|------|
-| 🏠 Local (Emulator) | ローカルエミュレータ接続 |
-| 📱 Physical Device (Local) | 物理デバイス + ローカル |
-| 🚀 Production (Debug) | 本番デバッグ |
-| 📦 Production (Release) | リリースビルド確認 |
-
-`LOCAL_HOST` を自分の Mac の LAN IP に変更してください。
-
----
-
-### 🔑 Edge Functions ローカル設定
-
-`supabase/.env.local` に API キーを設定：
-
-```bash
-# GEMINI_API_KEY を取得して設定
-# https://aistudio.google.com/app/apikey
-vi supabase/.env.local  # GEMINI_API_KEY=your_key_here
-
-# Edge Functions をローカルで起動
-make functions-serve
+psql $DATABASE_URL -f supabase/seeds/season1_week1.sql          # Korean S1W1
+psql $DATABASE_URL -f supabase/seeds/season1_week2_ko.sql       # Korean S1W2
+psql $DATABASE_URL -f supabase/seeds/season1_week3_ko.sql       # Korean S1W3
+psql $DATABASE_URL -f supabase/seeds/season1_week4_ko.sql       # Korean S1W4
+psql $DATABASE_URL -f supabase/seeds/characters_multilang.sql   # 4キャラ追加
+psql $DATABASE_URL -f supabase/seeds/season1_week1_multilang.sql # EN/TR/VI/AR S1W1
+psql $DATABASE_URL -f supabase/seeds/season1_week2_multilang.sql # EN/TR/VI/AR S1W2
 ```
 
 ---
 
-> **外部サービスの初期セットアップ（Supabase・Firebase・RevenueCat・App Store）は [SETUP.md](SETUP.md) を参照してください。**
+## 💰 料金プラン
+
+| | Free | Pro |
+|---|---|---|
+| 会話 | 3ターン/日 | 無制限 |
+| 対応言語 | Korean (지우) のみ | 全5言語 |
+| AI添削 | 5回/日 | 無制限 |
+| 語彙帳 | 全機能 | 全機能 |
+| 料金 | 無料 | ¥1,480 / 月 |
 
 ---
 
-### 📦 本番デプロイ
+## 🎨 デザインシステム
 
-```bash
-# Supabase 本番に Edge Functions をデプロイ
-supabase functions deploy generate-reply
-supabase functions deploy generate-demo-reply
-supabase functions deploy difficulty-updater
-supabase functions deploy fcm-scheduler
-supabase functions deploy revenuecat-webhook
+**Emotional Dark** テーマ。「夜、こっそり好きな人とLINEしている感覚」を設計原則に。
 
-# Secrets を設定
-supabase secrets set GEMINI_API_KEY=your_key
-supabase secrets set REVENUECAT_WEBHOOK_SECRET=your_secret
-supabase secrets set FIREBASE_SERVICE_ACCOUNT_JSON='{"type":"service_account",...}'
+| トークン | 値 | 用途 |
+|---|---|---|
+| Background | `#09090F` | 深夜インディゴ |
+| Surface | `#13131F` | カード背景 |
+| Primary | `#FF4E8B` | CTA / ユーザーバブル |
+| Tension | `#FF6B6B` | 喧嘩シーン |
+| Success | `#4ECDC4` | 添削正解 / 達成 |
+| Gold | `#FFD166` | ストリーク / XP |
 
-# iOS
-make build-ios SUPABASE_URL=https://xxx.supabase.co SUPABASE_ANON_KEY=eyJ... RC_IOS_KEY=appl_xxx
-
-# Android
-make build-android SUPABASE_URL=https://xxx.supabase.co SUPABASE_ANON_KEY=eyJ... RC_ANDROID_KEY=goog_xxx
-```
+→ 詳細: [`docs/DESIGN_RATIONALE.md`](docs/DESIGN_RATIONALE.md)
+→ プレビュー: [`docs/design-preview/index.html`](docs/design-preview/index.html)
 
 ---
 
 ## 🧪 テスト
 
 ```bash
-# ユニット + ウィジェットテスト（全て）
-make test
-# または
-flutter test
-
-# VRT ゴールデンファイル生成（初回・UI変更後）
-flutter test test/golden/ --update-goldens
-
-# E2E テスト（接続デバイス必須）
-flutter test integration_test/e2e_test.dart -d <device-id>
+make test          # ユニット + Widgetテスト
+make test-golden-update  # Golden baseline 生成 ← 初回必須
+make analyze       # dart analyze
 ```
 
-| 種別 | ファイル | 件数 |
-|------|---------|------|
-| Unit | `test/unit/` | 27件 |
-| Widget | `test/widget/` | 18件 |
-| Golden (VRT) | `test/golden/` | 23件・23パターン |
-| E2E | `integration_test/e2e_test.dart` | 8シナリオ・30件 |
-
-> テスト戦略の詳細は [docs/TESTING.md](docs/TESTING.md) を参照。
+→ 詳細: [`docs/TESTING.md`](docs/TESTING.md)
 
 ---
 
-## 📖 仕様書
+## 📋 環境構築
 
-詳細な要件定義・設計書・タスクリストは `.kiro/specs/rizzlang-mvp/` を参照。
-
-- [requirements.md](.kiro/specs/rizzlang-mvp/requirements.md) — EARS形式の要件定義
-- [design.md](.kiro/specs/rizzlang-mvp/design.md) — 技術設計書
-- [tasks.md](.kiro/specs/rizzlang-mvp/tasks.md) — 実装タスク一覧
-
----
-
-## 📊 ビジネスモデル
-
-| プラン | 価格 | 内容 |
-|---|---|---|
-| 無料 | ¥0 | 1日3往復・1キャラ |
-| Pro | ¥1,480/月 | 無制限・全キャラ・語彙SRS |
+→ [`SETUP.md`](SETUP.md) を参照（Supabase / Firebase / RevenueCat / App Store）
 
 ---
 
 ## 🗺 ロードマップ
 
-- [x] 仕様書・設計書完成
-- [ ] Week 1: プロジェクト基盤 + Supabase スキーマ
-- [ ] Week 2: AIチャット生成コアフロー
-- [ ] Week 3: シナリオシステム + 語彙帳
-- [ ] Week 4: 課金 + 磨き込み
-- [ ] Beta: クローズドBETA（50人）
-
----
-
-MIT License · Made with ❤️ in Tokyo
+| フェーズ | 言語 | 状態 |
+|---|---|---|
+| Phase 1 (BETA) | 🇰🇷 Korean | ✅ 実装完了 |
+| Phase 2 | 🇺🇸 English + 🇹🇷 Turkish | ✅ 実装完了 |
+| Phase 3 | 🇻🇳 Vietnamese + 🇸🇦 Arabic | ✅ 実装完了 |
+| Phase 4 | 🇨🇳 Chinese + 🇫🇷 French + 🇪🇸 Spanish | 🔮 予定 |
